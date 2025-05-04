@@ -8,6 +8,7 @@ import sendImageRoute from './send-image-route.js';
 import miniaturasRoute from './routes/miniaturas-route.js';
 import paymentStatusRoute from './routes/payment-status-route.js';
 import serverControlRoute from './routes/server-control-route.js';
+import mercadopagoRoute from './routes/mercadopago-route.js';
 import MiniaturaModel from './models/miniatura.js';
 
 // Inicializa o dotenv para carregar as variáveis de ambiente
@@ -15,7 +16,7 @@ dotenv.config();
 
 // Forçar a leitura do arquivo .env novamente para garantir que as variáveis sejam carregadas
 try {
-    const envConfig = dotenv.parse(fs.readFileSync('backend/.env'));
+    const envConfig = dotenv.parse(fs.readFileSync('.env'));
     for (const k in envConfig) {
         process.env[k] = envConfig[k];
     }
@@ -43,6 +44,7 @@ app.use('/api', sendImageRoute);
 app.use('/api', miniaturasRoute);
 app.use('/api', paymentStatusRoute);
 app.use('/api', serverControlRoute);
+app.use('', mercadopagoRoute); // Rota para processar pagamentos PIX
 
 // Inicializar o banco de dados de miniaturas
 const miniaturaModel = new MiniaturaModel();
