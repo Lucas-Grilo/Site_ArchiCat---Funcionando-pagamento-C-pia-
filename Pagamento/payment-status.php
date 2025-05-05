@@ -22,9 +22,16 @@ $public_key = getenv('MERCADO_PAGO_PUBLIC_KEY') ?: 'APP_USR-e00cb746-fa99-43d6-9
 // Verificar qual operação está sendo solicitada
 $request_uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($request_uri, PHP_URL_PATH);
+$query = parse_url($request_uri, PHP_URL_QUERY);
+
+// Processar parâmetros de consulta
+$params = [];
+if ($query) {
+    parse_str($query, $params);
+}
 
 // Rota para fornecer a chave pública do Mercado Pago
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/mercadopago-config') !== false) {
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($params['action']) && $params['action'] === 'mercadopago-config') {
     echo json_encode([
         'publicKey' => $public_key
     ]);
@@ -32,10 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/mercadopago-config')
 }
 
 // Rota para verificar o status de um pagamento
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/payment-status/') !== false) {
-    // Extrair o ID do pagamento da URL
-    $parts = explode('/', $path);
-    $payment_id = end($parts);
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($params['action']) && $params['action'] === 'payment-status' && isset($params['id'])) {
+    // Obter o ID do pagamento do parâmetro
+    $payment_id = $params['id'];
     
     if (empty($payment_id)) {
         http_response_code(400);
