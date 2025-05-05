@@ -87,9 +87,8 @@ let mp;
 // Função para obter a chave pública do Mercado Pago do backend
 async function initMercadoPago() {
   try {
-    // Determinar a URL base do servidor automaticamente
-    const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/payment-status.php?action=mercadopago-config`);
+    // Usar o caminho relativo para o arquivo payment-status.php no mesmo diretório
+    const response = await fetch('payment-status.php?action=mercadopago-config');
     if (response.ok) {
       const config = await response.json();
       mp = new MercadoPago(config.publicKey);
@@ -225,8 +224,7 @@ async function processPixPayment(event) {
     };
     
     // Enviar os dados para o backend PHP
-    const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/process-pix.php`, {
+    const response = await fetch('process-pix.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -267,7 +265,7 @@ async function processPixPayment(event) {
       document.getElementById('check-payment-status').addEventListener('click', async function() {
         this.textContent = 'Verificando...';
         try {
-          const statusResponse = await fetch(`${baseUrl}/payment-status.php?action=payment-status&id=${data.payment_id}`);
+          const statusResponse = await fetch(`payment-status.php?action=payment-status&id=${data.payment_id}`);
           const statusData = await statusResponse.json();
           
           if (statusData.is_approved) {
@@ -320,8 +318,7 @@ async function sendEmailWithPaymentInfo(nome, email, valor) {
     };
     
     // Enviar os dados para o backend PHP
-    const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/send-email.php`, {
+    const response = await fetch('send-email.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
