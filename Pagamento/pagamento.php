@@ -60,6 +60,32 @@
 
         <label for="pix-telefone">Telefone:</label>
         <input type="tel" id="pix-telefone" name="pix-telefone" placeholder="(11) 98765-4321" required>
+        
+        <!-- Campos de endereço -->
+        <div class="endereco-fields">
+          <h3>Endereço de Entrega</h3>
+          
+          <label for="cep">CEP:</label>
+          <input type="text" id="cep" name="cep" placeholder="00000-000" maxlength="9">
+          
+          <label for="rua">Rua:</label>
+          <input type="text" id="rua" name="rua" placeholder="Nome da rua">
+          
+          <label for="numero">Número:</label>
+          <input type="text" id="numero" name="numero" placeholder="123">
+          
+          <label for="complemento">Complemento:</label>
+          <input type="text" id="complemento" name="complemento" placeholder="Apto, bloco, etc.">
+          
+          <label for="bairro">Bairro:</label>
+          <input type="text" id="bairro" name="bairro" placeholder="Nome do bairro">
+          
+          <label for="cidade">Cidade:</label>
+          <input type="text" id="cidade" name="cidade" placeholder="Nome da cidade">
+          
+          <label for="estado">Estado:</label>
+          <input type="text" id="estado" name="estado" placeholder="UF" maxlength="2">
+        </div>
 
         <button type="submit" class="pix-button">Gerar PIX</button>
 

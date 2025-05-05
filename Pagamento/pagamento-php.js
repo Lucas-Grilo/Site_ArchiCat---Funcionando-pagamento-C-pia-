@@ -126,6 +126,49 @@ document.addEventListener('DOMContentLoaded', async function() {
       totalElement.textContent = totalFromSession;
     }
   }
+  
+  // Configurar eventos relacionados ao CEP
+  const cepInput = document.getElementById('cep');
+  const buscarCepButton = document.getElementById('buscar-cep');
+  
+  if (cepInput) {
+    // Evento de perda de foco para buscar CEP automaticamente
+    cepInput.addEventListener('blur', function() {
+      const cep = this.value;
+      if (cep && cep.replace(/\D/g, '').length === 8) {
+        buscarCep(cep);
+      }
+    });
+    
+    // Adicionar máscara para o campo de CEP
+    cepInput.addEventListener('input', function() {
+      let cep = this.value.replace(/\D/g, '');
+      if (cep.length > 5) {
+        this.value = cep.substring(0, 5) + '-' + cep.substring(5, 8);
+      } else {
+        this.value = cep;
+      }
+    });
+  } else {
+    console.error('Elemento de CEP não encontrado no DOM');
+  }
+  
+  // Adicionar evento ao botão de buscar CEP
+  if (buscarCepButton) {
+    buscarCepButton.addEventListener('click', function() {
+      const cep = cepInput ? cepInput.value : '';
+      if (cep) {
+        buscarCep(cep);
+      } else {
+        messageDiv.textContent = "Por favor, digite um CEP válido.";
+      }
+    });
+  } else {
+    console.error('Botão de buscar CEP não encontrado no DOM');
+  }
+  
+  // Inicializar a exibição dos campos com base no método de pagamento selecionado
+  updatePaymentFields();
 });
 
 // Função para criar os campos de cartão de crédito
@@ -197,6 +240,15 @@ async function processPixPayment(event) {
   const totalElement = document.getElementById('total-geral');
   const total = totalElement ? parseFloat(totalElement.textContent) : 100.00;
   
+  // Obter os dados de endereço
+  const cep = document.getElementById('cep').value;
+  const rua = document.getElementById('rua').value;
+  const numero = document.getElementById('numero').value;
+  const complemento = document.getElementById('complemento').value;
+  const bairro = document.getElementById('bairro').value;
+  const cidade = document.getElementById('cidade').value;
+  const estado = document.getElementById('estado').value;
+  
   // Validar os campos
   if (!nome || !cpf || !email || !telefone) {
     messageDiv.textContent = "Por favor, preencha todos os campos.";
@@ -219,6 +271,18 @@ async function processPixPayment(event) {
         identification: {
           type: "CPF",
           number: cpf.replace(/[^0-9]/g, '')
+        },
+        phone: {
+          area_code: telefone.substring(0, 2),
+          number: telefone.replace(/\D/g, '').substring(2)
+        },
+        address: {
+          zip_code: cep.replace(/\D/g, ''),
+          street_name: rua,
+          street_number: numero,
+          neighborhood: bairro,
+          city: cidade,
+          federal_unit: estado
         }
       }
     };
@@ -309,12 +373,30 @@ async function sendEmailWithPaymentInfo(nome, email, valor) {
     // Obter a imagem do sessionStorage
     const imageData = sessionStorage.getItem('screenCapture');
     
+    // Obter os dados de endereço
+    const cep = document.getElementById('cep').value;
+    const rua = document.getElementById('rua').value;
+    const numero = document.getElementById('numero').value;
+    const complemento = document.getElementById('complemento').value;
+    const bairro = document.getElementById('bairro').value;
+    const cidade = document.getElementById('cidade').value;
+    const estado = document.getElementById('estado').value;
+    
     // Preparar os dados para enviar ao backend
     const emailData = {
       nome: nome,
       email: email,
       valor: valor.toFixed(2),
-      imageData: imageData
+      imageData: imageData,
+      endereco: {
+        cep: cep,
+        rua: rua,
+        numero: numero,
+        complemento: complemento,
+        bairro: bairro,
+        cidade: cidade,
+        estado: estado
+      }
     };
     
     // Enviar os dados para o backend PHP
@@ -354,6 +436,165 @@ paymentForm.addEventListener('submit', function(event) {
     messageDiv.textContent = "Processamento de cartão de crédito não implementado nesta versão.";
   }
 });
+
+// Função para buscar endereço pelo CEP usando a API ViaCEP
+async function buscarCep(cep) {
+  console.log('Função buscarCep chamada com:', cep);
+  
+  // Limpar o CEP, mantendo apenas números
+  cep = cep.replace(/\D/g, '');
+  console.log('CEP após limpeza:', cep);
+  
+  if (cep.length !== 8) {
+    console.log('CEP inválido, comprimento:', cep.length);
+    messageDiv.textContent = "CEP inválido. Digite um CEP com 8 dígitos.";
+    messageDiv.style.color = "#cc0000";
+    return false;
+  }
+  
+  // Mostrar mensagem de carregamento
+  messageDiv.textContent = "Buscando CEP...";
+  messageDiv.style.color = "#0066cc";
+  
+  try {
+    console.log(`Iniciando requisição para CEP: ${cep}`);
+    
+    // Usar URL com protocolo HTTPS para evitar problemas de segurança
+    const url = `https://viacep.com.br/ws/${cep}/json/`;
+    console.log('URL da requisição:', url);
+    
+    // Fazer requisição para a API ViaCEP
+    const response = await fetch(url);
+    
+    console.log('Resposta da API ViaCEP:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Dados recebidos da API:', data);
+    
+    // Verificar se a API retornou erro
+    if (data.erro) {
+      console.log('API retornou erro para o CEP');
+      messageDiv.textContent = "CEP não encontrado.";
+      messageDiv.style.color = "#cc0000";
+      return false;
+    }
+    
+    // Preencher os campos de endereço
+    const ruaElement = document.getElementById('rua');
+    const bairroElement = document.getElementById('bairro');
+    const cidadeElement = document.getElementById('cidade');
+    const estadoElement = document.getElementById('estado');
+    const numeroElement = document.getElementById('numero');
+    
+    console.log('Elementos do DOM encontrados:', {
+      rua: !!ruaElement,
+      bairro: !!bairroElement,
+      cidade: !!cidadeElement,
+      estado: !!estadoElement,
+      numero: !!numeroElement
+    });
+    
+    if (ruaElement) ruaElement.value = data.logradouro || '';
+    if (bairroElement) bairroElement.value = data.bairro || '';
+    if (cidadeElement) cidadeElement.value = data.localidade || '';
+    if (estadoElement) estadoElement.value = data.uf || '';
+    
+    // Remover o atributo readonly para permitir edição se necessário
+    if (ruaElement) ruaElement.removeAttribute('readonly');
+    if (bairroElement) bairroElement.removeAttribute('readonly');
+    if (cidadeElement) cidadeElement.removeAttribute('readonly');
+    if (estadoElement) estadoElement.removeAttribute('readonly');
+    
+    // Focar no campo número após preencher o endereço
+    if (numeroElement) numeroElement.focus();
+    
+    // Limpar mensagem de erro se houver
+    messageDiv.textContent = "CEP encontrado com sucesso!";
+    messageDiv.style.color = "#008800";
+    
+    // Após 3 segundos, limpar a mensagem de sucesso
+    setTimeout(() => {
+      messageDiv.textContent = "";
+    }, 3000);
+    
+    console.log('Busca de CEP concluída com sucesso');
+    return true;
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    messageDiv.textContent = "Erro ao buscar CEP. Tente novamente.";
+    messageDiv.style.color = "#cc0000";
+    return false;
+  }
+}
+
+// Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
+document.addEventListener('DOMContentLoaded', async function() {
+  // Inicializar o Mercado Pago
+  await initMercadoPago();
+  
+  // Carregar a imagem do usuário
+  loadUserImage();
+  
+  // Carregar as informações das miniaturas adicionadas
+  loadMiniaturasAdicionadas();
+  
+  // Carregar o valor total do sessionStorage
+  const totalFromSession = sessionStorage.getItem('totalGeral');
+  if (totalFromSession) {
+    const totalElement = document.getElementById('total-geral');
+    if (totalElement) {
+      totalElement.textContent = totalFromSession;
+    }
+  }
+  
+  // Configurar eventos relacionados ao CEP
+  const cepInput = document.getElementById('cep');
+  const buscarCepButton = document.getElementById('buscar-cep');
+  
+  if (cepInput) {
+    // Evento de perda de foco para buscar CEP automaticamente
+    cepInput.addEventListener('blur', function() {
+      const cep = this.value;
+      if (cep && cep.replace(/\D/g, '').length === 8) {
+        buscarCep(cep);
+      }
+    });
+    
+    // Adicionar máscara para o campo de CEP
+    cepInput.addEventListener('input', function() {
+      let cep = this.value.replace(/\D/g, '');
+      if (cep.length > 5) {
+        this.value = cep.substring(0, 5) + '-' + cep.substring(5, 8);
+      } else {
+        this.value = cep;
+      }
+    });
+  } else {
+    console.error('Elemento de CEP não encontrado no DOM');
+  }
+  
+  // Adicionar evento ao botão de buscar CEP
+  if (buscarCepButton) {
+    buscarCepButton.addEventListener('click', function() {
+      const cep = cepInput ? cepInput.value : '';
+      if (cep) {
+        buscarCep(cep);
+      } else {
+        messageDiv.textContent = "Por favor, digite um CEP válido.";
+      }
+    });
+  } else {
+    console.error('Botão de buscar CEP não encontrado no DOM');
+  }
+  
+  // Inicializar a exibição dos campos com base no método de pagamento selecionado
+  updatePaymentFields();
+});
+
 
 // Inicializar a exibição dos campos com base no método de pagamento selecionado
 updatePaymentFields();
