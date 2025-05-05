@@ -89,7 +89,7 @@ async function initMercadoPago() {
   try {
     // Determinar a URL base do servidor automaticamente
     const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/payment-status.php?action=mercadopago-config`);
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=mercadopago-config`);
     if (response.ok) {
       const config = await response.json();
       mp = new MercadoPago(config.publicKey);
@@ -226,7 +226,7 @@ async function processPixPayment(event) {
     
     // Enviar os dados para o backend PHP
     const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/process-pix.php`, {
+    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -267,7 +267,7 @@ async function processPixPayment(event) {
       document.getElementById('check-payment-status').addEventListener('click', async function() {
         this.textContent = 'Verificando...';
         try {
-          const statusResponse = await fetch(`${baseUrl}/payment-status.php?action=payment-status&id=${data.payment_id}`);
+          const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${data.payment_id}`);
           const statusData = await statusResponse.json();
           
           if (statusData.is_approved) {
