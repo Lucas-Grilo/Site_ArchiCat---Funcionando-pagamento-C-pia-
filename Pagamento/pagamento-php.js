@@ -87,8 +87,9 @@ let mp;
 // Função para obter a chave pública do Mercado Pago do backend
 async function initMercadoPago() {
   try {
-    // Usar o caminho relativo para o arquivo payment-status.php no mesmo diretório
-    const response = await fetch('payment-status.php?action=mercadopago-config');
+    // Usar o caminho absoluto para o arquivo payment-status.php
+    const baseUrl = window.location.origin;
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=mercadopago-config`);
     if (response.ok) {
       const config = await response.json();
       mp = new MercadoPago(config.publicKey);
@@ -125,6 +126,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (totalElement) {
       totalElement.textContent = totalFromSession;
     }
+  }
+  
+  // Adicionar evento ao botão de PIX
+  const pixButton = document.getElementById('pix-button');
+  if (pixButton) {
+    pixButton.addEventListener('click', function() {
+      processPixPayment();
+    });
+  } else {
+    console.error('Botão de PIX não encontrado no DOM');
   }
   
   // Configurar eventos relacionados ao CEP
@@ -229,8 +240,8 @@ function updatePaymentFields() {
 }
 
 // Função para processar o pagamento PIX
-async function processPixPayment(event) {
-  event.preventDefault();
+async function processPixPayment() {
+  // Não é necessário event.preventDefault() aqui pois a função é chamada por um botão do tipo button
   
   // Obter os valores dos campos
   const nome = document.getElementById('pix-name').value;
@@ -288,7 +299,8 @@ async function processPixPayment(event) {
     };
     
     // Enviar os dados para o backend PHP
-    const response = await fetch('process-pix.php', {
+    const baseUrl = window.location.origin;
+    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -400,7 +412,8 @@ async function sendEmailWithPaymentInfo(nome, email, valor) {
     };
     
     // Enviar os dados para o backend PHP
-    const response = await fetch('send-email.php', {
+    const baseUrl = window.location.origin;
+    const response = await fetch(`${baseUrl}/Pagamento/send-email.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -425,14 +438,13 @@ paymentMethod.addEventListener('change', updatePaymentFields);
 
 // Adicionar evento para processar o pagamento PIX quando o formulário for enviado
 paymentForm.addEventListener('submit', function(event) {
+  event.preventDefault(); // Prevenir o envio do formulário em todos os casos
   const selectedMethod = paymentMethod.value;
   
   if (selectedMethod === "pix") {
-    processPixPayment(event);
+    processPixPayment();
   } else {
-    // Para cartão de crédito, permitir o envio normal do formulário
-    // Ou implementar a lógica de processamento de cartão de crédito
-    event.preventDefault();
+    // Para cartão de crédito, implementar a lógica de processamento de cartão de crédito
     messageDiv.textContent = "Processamento de cartão de crédito não implementado nesta versão.";
   }
 });
@@ -463,8 +475,14 @@ async function buscarCep(cep) {
     const url = `https://viacep.com.br/ws/${cep}/json/`;
     console.log('URL da requisição:', url);
     
-    // Fazer requisição para a API ViaCEP
-    const response = await fetch(url);
+    // Fazer requisição para a API ViaCEP com opções adicionais para evitar problemas de CORS
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      mode: 'cors'
+    });
     
     console.log('Resposta da API ViaCEP:', response.status, response.statusText);
     
@@ -549,6 +567,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (totalElement) {
       totalElement.textContent = totalFromSession;
     }
+  }
+  
+  // Adicionar evento ao botão de PIX
+  const pixButton = document.getElementById('pix-button');
+  if (pixButton) {
+    pixButton.addEventListener('click', function() {
+      processPixPayment();
+    });
+  } else {
+    console.error('Botão de PIX não encontrado no DOM');
   }
   
   // Configurar eventos relacionados ao CEP
