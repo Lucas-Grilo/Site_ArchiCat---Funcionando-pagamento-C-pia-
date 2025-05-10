@@ -11,51 +11,66 @@ function loadUserImage() {
   if (!userImagePreview) return;
   
   // Tentar carregar a imagem do sessionStorage
-  const screenCapture = sessionStorage.getItem('screenCapture');
+  let screenCapture = sessionStorage.getItem('screenCapture');
   
   if (screenCapture) {
+    console.log('Imagem encontrada no sessionStorage, verificando formato...');
+    
+    // Verificar se a imagem já tem o prefixo data:image
+    if (!screenCapture.startsWith('data:image')) {
+      console.log('Adicionando prefixo data:image/png;base64 à imagem');
+      screenCapture = 'data:image/png;base64,' + screenCapture;
+    } else {
+      console.log('Imagem já possui o prefixo data:image');
+    }
+    
     // Limpar o conteúdo anterior antes de adicionar a nova imagem
     userImagePreview.innerHTML = '';
     
-    // Criar elemento de imagem e definir a fonte
-    const img = document.createElement('img');
-    
-    // Definir atributos da imagem primeiro
-    img.src = screenCapture;
-    img.alt = 'Sua imagem personalizada';
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '300px';
-    
-    // Adicionar a imagem ao DOM imediatamente
-    userImagePreview.appendChild(img);
-    
-    // Adicionar evento para verificar se a imagem carregou com sucesso
-    img.onload = function() {
-      console.log('Imagem carregada do sessionStorage com sucesso!');
+    try {
+      // Criar elemento de imagem e definir a fonte
+      const img = document.createElement('img');
       
-      // Verificar se existem dados de miniaturas no sessionStorage
-      const thumbnailsData = sessionStorage.getItem('thumbnailsData');
-      if (thumbnailsData) {
-        try {
-          // Adicionar informações sobre as miniaturas utilizadas, se necessário
-          const thumbnails = JSON.parse(thumbnailsData);
-          if (thumbnails && thumbnails.length > 0) {
-            const thumbnailInfo = document.createElement('div');
-            thumbnailInfo.className = 'thumbnail-info';
-            thumbnailInfo.innerHTML = `<p>Seu projeto contém ${thumbnails.length} item(ns) personalizado(s)</p>`;
-            userImagePreview.appendChild(thumbnailInfo);
+      // Definir atributos da imagem primeiro
+      img.src = screenCapture;
+      img.alt = 'Sua imagem personalizada';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '300px';
+      
+      // Adicionar a imagem ao DOM imediatamente
+      userImagePreview.appendChild(img);
+      
+      // Adicionar evento para verificar se a imagem carregou com sucesso
+      img.onload = function() {
+        console.log('Imagem carregada do sessionStorage com sucesso!');
+        
+        // Verificar se existem dados de miniaturas no sessionStorage
+        const thumbnailsData = sessionStorage.getItem('thumbnailsData');
+        if (thumbnailsData) {
+          try {
+            // Adicionar informações sobre as miniaturas utilizadas, se necessário
+            const thumbnails = JSON.parse(thumbnailsData);
+            if (thumbnails && thumbnails.length > 0) {
+              const thumbnailInfo = document.createElement('div');
+              thumbnailInfo.className = 'thumbnail-info';
+              thumbnailInfo.innerHTML = `<p>Seu projeto contém ${thumbnails.length} item(ns) personalizado(s)</p>`;
+              userImagePreview.appendChild(thumbnailInfo);
+            }
+          } catch (e) {
+            console.error('Erro ao processar dados das miniaturas:', e);
           }
-        } catch (e) {
-          console.error('Erro ao processar dados das miniaturas:', e);
         }
-      }
-    };
-    
-    // Adicionar evento para tratar erros de carregamento
-    img.onerror = function() {
-      console.error('Erro ao carregar a imagem - evento onerror acionado');
-      userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
-    };
+      };
+      
+      // Adicionar evento para tratar erros de carregamento
+      img.onerror = function() {
+        console.error('Erro ao carregar a imagem - evento onerror acionado');
+        userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
+      };
+    } catch (error) {
+      console.error('Erro ao processar a imagem:', error);
+      userImagePreview.innerHTML = '<p>Erro ao processar a imagem.</p>';
+    }
   } else {
     // Se não houver imagem no sessionStorage, exibir mensagem
     userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
@@ -383,7 +398,20 @@ async function processPixPayment() {
 async function sendEmailWithPaymentInfo(nome, email, valor) {
   try {
     // Obter a imagem do sessionStorage
-    const imageData = sessionStorage.getItem('screenCapture');
+    let imageData = sessionStorage.getItem('screenCapture');
+    
+    // Verificar se a imagem existe e adicionar o prefixo data:image se necessário
+    if (imageData) {
+      console.log('Imagem encontrada para envio por email, verificando formato...');
+      if (!imageData.startsWith('data:image')) {
+        console.log('Adicionando prefixo data:image/png;base64 à imagem para email');
+        imageData = 'data:image/png;base64,' + imageData;
+      } else {
+        console.log('Imagem para email já possui o prefixo data:image');
+      }
+    } else {
+      console.log('Nenhuma imagem encontrada no sessionStorage para envio por email');
+    }
     
     // Obter os dados de endereço
     const cep = document.getElementById('cep').value;
