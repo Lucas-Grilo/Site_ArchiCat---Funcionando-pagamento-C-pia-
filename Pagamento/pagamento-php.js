@@ -13,8 +13,17 @@ function loadUserImage() {
   // Tentar carregar a imagem do sessionStorage
   let screenCapture = sessionStorage.getItem('screenCapture');
   
+  // Verificar se a imagem existe no sessionStorage
+  if (!screenCapture) {
+    // Tentar obter a imagem de localStorage como fallback
+    screenCapture = localStorage.getItem('screenCapture');
+    if (screenCapture) {
+      console.log('Imagem encontrada no localStorage como fallback');
+    }
+  }
+  
   if (screenCapture) {
-    console.log('Imagem encontrada no sessionStorage, verificando formato...');
+    console.log('Imagem encontrada, verificando formato...');
     
     // Verificar se a imagem já tem o prefixo data:image
     if (!screenCapture.startsWith('data:image')) {
@@ -42,7 +51,7 @@ function loadUserImage() {
       
       // Adicionar evento para verificar se a imagem carregou com sucesso
       img.onload = function() {
-        console.log('Imagem carregada do sessionStorage com sucesso!');
+        console.log('Imagem carregada com sucesso!');
         
         // Verificar se existem dados de miniaturas no sessionStorage
         const thumbnailsData = sessionStorage.getItem('thumbnailsData');
@@ -72,9 +81,9 @@ function loadUserImage() {
       userImagePreview.innerHTML = '<p>Erro ao processar a imagem.</p>';
     }
   } else {
-    // Se não houver imagem no sessionStorage, exibir mensagem
+    // Se não houver imagem no sessionStorage ou localStorage, exibir mensagem
     userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
-    console.error('Não foi possível carregar a imagem do sessionStorage.');
+    console.error('Não foi possível carregar a imagem do sessionStorage ou localStorage.');
   }
 }
 
@@ -155,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Configurar eventos relacionados ao CEP
   const cepInput = document.getElementById('cep');
-  const buscarCepButton = document.getElementById('buscar-cep');
+  let buscarCepButton = document.getElementById('buscar-cep');
   
   if (cepInput) {
     // Evento de perda de foco para buscar CEP automaticamente
@@ -175,22 +184,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         this.value = cep;
       }
     });
+    
+    // Se o botão de buscar CEP não for encontrado, criar um botão alternativo
+    if (!buscarCepButton) {
+      console.log('Botão de buscar CEP não encontrado, criando alternativa...');
+      
+      // Verificar se existe um container para o CEP
+      const cepContainer = cepInput.parentElement;
+      if (cepContainer) {
+        // Criar um botão e adicioná-lo após o input de CEP
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        
+        // Inserir o botão após o input de CEP
+        cepInput.insertAdjacentElement('afterend', buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente');
+      }
+    }
+    
+    // Adicionar evento ao botão de buscar CEP (original ou criado dinamicamente)
+    if (buscarCepButton) {
+      buscarCepButton.addEventListener('click', function() {
+        const cep = cepInput.value;
+        if (cep) {
+          buscarCep(cep);
+        } else {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+        }
+      });
+      console.log('Evento adicionado ao botão de buscar CEP');
+    }
   } else {
     console.error('Elemento de CEP não encontrado no DOM');
-  }
-  
-  // Adicionar evento ao botão de buscar CEP
-  if (buscarCepButton) {
-    buscarCepButton.addEventListener('click', function() {
-      const cep = cepInput ? cepInput.value : '';
-      if (cep) {
-        buscarCep(cep);
-      } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
-      }
-    });
-  } else {
-    console.error('Botão de buscar CEP não encontrado no DOM');
   }
   
   // Inicializar a exibição dos campos com base no método de pagamento selecionado
@@ -609,7 +637,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Configurar eventos relacionados ao CEP
   const cepInput = document.getElementById('cep');
-  const buscarCepButton = document.getElementById('buscar-cep');
+  let buscarCepButton = document.getElementById('buscar-cep');
   
   if (cepInput) {
     // Evento de perda de foco para buscar CEP automaticamente
@@ -629,22 +657,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         this.value = cep;
       }
     });
+    
+    // Se o botão de buscar CEP não for encontrado, criar um botão alternativo
+    if (!buscarCepButton) {
+      console.log('Botão de buscar CEP não encontrado, criando alternativa...');
+      
+      // Verificar se existe um container para o CEP
+      const cepContainer = cepInput.parentElement;
+      if (cepContainer) {
+        // Criar um botão e adicioná-lo após o input de CEP
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        
+        // Inserir o botão após o input de CEP
+        cepInput.insertAdjacentElement('afterend', buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente');
+      }
+    }
+    
+    // Adicionar evento ao botão de buscar CEP (original ou criado dinamicamente)
+    if (buscarCepButton) {
+      buscarCepButton.addEventListener('click', function() {
+        const cep = cepInput.value;
+        if (cep) {
+          buscarCep(cep);
+        } else {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+        }
+      });
+      console.log('Evento adicionado ao botão de buscar CEP');
+    }
   } else {
     console.error('Elemento de CEP não encontrado no DOM');
-  }
-  
-  // Adicionar evento ao botão de buscar CEP
-  if (buscarCepButton) {
-    buscarCepButton.addEventListener('click', function() {
-      const cep = cepInput ? cepInput.value : '';
-      if (cep) {
-        buscarCep(cep);
-      } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
-      }
-    });
-  } else {
-    console.error('Botão de buscar CEP não encontrado no DOM');
   }
   
   // Inicializar a exibição dos campos com base no método de pagamento selecionado
