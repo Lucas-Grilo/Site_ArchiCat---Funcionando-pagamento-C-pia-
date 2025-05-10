@@ -87,25 +87,55 @@ let mp;
 // Função para obter a chave pública do Mercado Pago do backend
 async function initMercadoPago() {
   try {
-    // Usar o caminho absoluto para o arquivo payment-status.php
-    const baseUrl = window.location.origin;
-    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=mercadopago-config`);
+    // Obter a URL base do servidor usando a função getServerBaseUrl
+    const baseUrl = getServerBaseUrl();
+    console.log('Tentando inicializar Mercado Pago usando URL base:', baseUrl);
+    
+    // Usar a URL correta dependendo do ambiente
+    let url;
+    if (baseUrl === 'http://localhost:3000') {
+      // Em ambiente de desenvolvimento local, usar a rota do Express
+      url = `${baseUrl}/api/mercadopago-config`;
+    } else {
+      // Em produção, usar o arquivo PHP
+      url = `${baseUrl}/Pagamento/payment-status.php?action=mercadopago-config`;
+    }
+    
+    console.log('Fazendo requisição para:', url);
+    const response = await fetch(url);
+    
     if (response.ok) {
       const config = await response.json();
       mp = new MercadoPago(config.publicKey);
       console.log('Mercado Pago inicializado com chave do backend');
     } else {
-      console.error('Erro ao obter configuração do Mercado Pago');
+      console.error('Erro ao obter configuração do Mercado Pago, status:', response.status);
     }
   } catch (error) {
     console.error('Erro ao inicializar Mercado Pago:', error);
+    // Tentar inicializar com uma chave pública fixa como fallback
+    try {
+      console.log('Tentando inicializar com chave pública fixa');
+      mp = new MercadoPago('APP_USR-e00cb746-fa99-43d6-9aa3-3c998fa3d5f3');
+      console.log('Mercado Pago inicializado com chave fixa');
+    } catch (fallbackError) {
+      console.error('Erro ao inicializar Mercado Pago com chave fixa:', fallbackError);
+    }
   }
 }
 
 // Função para determinar a URL base do servidor
 function getServerBaseUrl() {
-  // Em produção, o servidor estará no mesmo domínio que o frontend
-  return window.location.origin;
+  // Verificar se estamos em ambiente de desenvolvimento (file://) ou produção
+  const isFileProtocol = window.location.protocol === 'file:';
+  
+  if (isFileProtocol) {
+    // Em ambiente de desenvolvimento local com protocolo file://, usar localhost
+    return 'http://localhost:3000';
+  } else {
+    // Em produção, o servidor estará no mesmo domínio que o frontend
+    return window.location.origin;
+  }
 }
 
 // Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
@@ -138,6 +168,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   } else {
     console.error('Botão de PIX não encontrado no DOM');
+    // Tentar encontrar o botão pela classe como fallback
+    const pixButtonByClass = document.querySelector('.pix-button');
+    if (pixButtonByClass) {
+      console.log('Botão PIX encontrado pela classe, adicionando evento de clique');
+      pixButtonByClass.addEventListener('click', function() {
+        console.log('Botão PIX clicado (selecionado pela classe)');
+        processPixPayment();
+      });
+    }
   }
   
   // Configurar eventos relacionados ao CEP
@@ -315,9 +354,19 @@ async function processPixPayment() {
       }
     };
     
-    // Enviar os dados para o backend PHP
-    const baseUrl = window.location.origin;
-    const apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
+    // Enviar os dados para o backend
+    const baseUrl = getServerBaseUrl();
+    let apiUrl;
+    
+    // Determinar a URL correta com base no ambiente
+    if (baseUrl === 'http://localhost:3000') {
+      // Em ambiente de desenvolvimento local, usar a rota do Express
+      apiUrl = `${baseUrl}/process-pix`;
+    } else {
+      // Em produção, usar o arquivo PHP
+      apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
+    }
+    
     console.log('Enviando requisição para:', apiUrl);
     console.log('Dados enviados:', JSON.stringify(paymentData));
     
@@ -469,9 +518,20 @@ async function sendEmailWithPaymentInfo(nome, email, valor) {
       }
     };
     
-    // Enviar os dados para o backend PHP
-    const baseUrl = window.location.origin;
-    const response = await fetch(`${baseUrl}/Pagamento/send-email.php`, {
+    // Enviar os dados para o backend
+    const baseUrl = getServerBaseUrl();
+    let apiUrl;
+    
+    // Determinar a URL correta com base no ambiente
+    if (baseUrl === 'http://localhost:3000') {
+      // Em ambiente de desenvolvimento local, usar a rota do Express
+      apiUrl = `${baseUrl}/api/send-email`;
+    } else {
+      // Em produção, usar o arquivo PHP
+      apiUrl = `${baseUrl}/Pagamento/send-email.php`;
+    }
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -637,6 +697,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   } else {
     console.error('Botão de PIX não encontrado no DOM');
+    // Tentar encontrar o botão pela classe como fallback
+    const pixButtonByClass = document.querySelector('.pix-button');
+    if (pixButtonByClass) {
+      console.log('Botão PIX encontrado pela classe, adicionando evento de clique');
+      pixButtonByClass.addEventListener('click', function() {
+        console.log('Botão PIX clicado (selecionado pela classe)');
+        processPixPayment();
+      });
+    }
   }
   
   // Configurar eventos relacionados ao CEP
