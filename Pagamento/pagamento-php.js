@@ -228,11 +228,83 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (cep) {
         buscarCep(cep);
       } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
+        if (messageDiv) {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+        } else {
+          console.error('Elemento messageDiv não encontrado no DOM');
+        }
       }
     });
   } else {
     console.error('Botão de buscar CEP não encontrado no DOM');
+  }
+  
+  // Função para buscar CEP via API ViaCEP
+  function buscarCep(cep) {
+    // Limpar apenas os dígitos
+    cep = cep.replace(/\D/g, '');
+    
+    // Verificar se o CEP tem 8 dígitos
+    if (cep.length !== 8) {
+      if (messageDiv) {
+        messageDiv.textContent = "CEP inválido. O CEP deve conter 8 dígitos.";
+        messageDiv.style.color = "#cc0000";
+      }
+      return;
+    }
+    
+    // Mostrar mensagem de carregamento
+    if (messageDiv) {
+      messageDiv.textContent = "Buscando CEP...";
+      messageDiv.style.color = "#0066cc";
+    }
+    
+    // Fazer requisição para a API ViaCEP
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.erro) {
+          throw new Error("CEP não encontrado");
+        }
+        
+        // Preencher os campos com os dados retornados
+        const ruaInput = document.getElementById('rua');
+        const bairroInput = document.getElementById('bairro');
+        const cidadeInput = document.getElementById('cidade');
+        const estadoInput = document.getElementById('estado');
+        
+        if (ruaInput) ruaInput.value = data.logradouro || '';
+        if (bairroInput) bairroInput.value = data.bairro || '';
+        if (cidadeInput) cidadeInput.value = data.localidade || '';
+        if (estadoInput) estadoInput.value = data.uf || '';
+        
+        // Focar no campo de número após preencher o endereço
+        const numeroInput = document.getElementById('numero');
+        if (numeroInput) numeroInput.focus();
+        
+        // Mostrar mensagem de sucesso
+        if (messageDiv) {
+          messageDiv.textContent = "CEP encontrado com sucesso!";
+          messageDiv.style.color = "#008800";
+          
+          // Limpar a mensagem após 3 segundos
+          setTimeout(() => {
+            messageDiv.textContent = "";
+          }, 3000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao buscar CEP:', error);
+        if (messageDiv) {
+          messageDiv.textContent = `Erro ao buscar CEP: ${error.message}`;
+          messageDiv.style.color = "#cc0000";
+        }
+      });
   }
   
   // Inicializar a exibição dos campos com base no método de pagamento selecionado
@@ -776,11 +848,83 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (cep) {
         buscarCep(cep);
       } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
+        if (messageDiv) {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+        } else {
+          console.error('Elemento messageDiv não encontrado no DOM');
+        }
       }
     });
   } else {
     console.error('Botão de buscar CEP não encontrado no DOM');
+  }
+  
+  // Função para buscar CEP via API ViaCEP
+  function buscarCep(cep) {
+    // Limpar apenas os dígitos
+    cep = cep.replace(/\D/g, '');
+    
+    // Verificar se o CEP tem 8 dígitos
+    if (cep.length !== 8) {
+      if (messageDiv) {
+        messageDiv.textContent = "CEP inválido. O CEP deve conter 8 dígitos.";
+        messageDiv.style.color = "#cc0000";
+      }
+      return;
+    }
+    
+    // Mostrar mensagem de carregamento
+    if (messageDiv) {
+      messageDiv.textContent = "Buscando CEP...";
+      messageDiv.style.color = "#0066cc";
+    }
+    
+    // Fazer requisição para a API ViaCEP
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.erro) {
+          throw new Error("CEP não encontrado");
+        }
+        
+        // Preencher os campos com os dados retornados
+        const ruaInput = document.getElementById('rua');
+        const bairroInput = document.getElementById('bairro');
+        const cidadeInput = document.getElementById('cidade');
+        const estadoInput = document.getElementById('estado');
+        
+        if (ruaInput) ruaInput.value = data.logradouro || '';
+        if (bairroInput) bairroInput.value = data.bairro || '';
+        if (cidadeInput) cidadeInput.value = data.localidade || '';
+        if (estadoInput) estadoInput.value = data.uf || '';
+        
+        // Focar no campo de número após preencher o endereço
+        const numeroInput = document.getElementById('numero');
+        if (numeroInput) numeroInput.focus();
+        
+        // Mostrar mensagem de sucesso
+        if (messageDiv) {
+          messageDiv.textContent = "CEP encontrado com sucesso!";
+          messageDiv.style.color = "#008800";
+          
+          // Limpar a mensagem após 3 segundos
+          setTimeout(() => {
+            messageDiv.textContent = "";
+          }, 3000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao buscar CEP:', error);
+        if (messageDiv) {
+          messageDiv.textContent = `Erro ao buscar CEP: ${error.message}`;
+          messageDiv.style.color = "#cc0000";
+        }
+      });
   }
   
   // Inicializar a exibição dos campos com base no método de pagamento selecionado
