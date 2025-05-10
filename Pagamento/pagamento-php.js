@@ -189,10 +189,38 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!buscarCepButton) {
       console.log('Botão de buscar CEP não encontrado, criando alternativa...');
       
-      // Verificar se existe um container para o CEP
-      const cepContainer = cepInput.parentElement;
-      if (cepContainer) {
-        // Criar um botão e adicioná-lo após o input de CEP
+      // Procurar pelo container específico da classe cep-input-group
+      let cepInputGroup = cepInput.closest('.cep-input-group');
+      
+      // Se não encontrar o container específico, verificar o container pai
+      if (!cepInputGroup) {
+        const cepContainer = cepInput.parentElement;
+        if (cepContainer) {
+          // Criar um container para agrupar o input e o botão se não existir
+          cepInputGroup = document.createElement('div');
+          cepInputGroup.className = 'cep-input-group';
+          
+          // Substituir o input original pelo novo container
+          cepContainer.replaceChild(cepInputGroup, cepInput);
+          
+          // Adicionar o input ao novo container
+          cepInputGroup.appendChild(cepInput);
+        }
+      }
+      
+      if (cepInputGroup) {
+        // Criar um botão e adicioná-lo ao container
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        
+        // Inserir o botão após o input de CEP
+        cepInputGroup.appendChild(buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente');
+      } else {
+        // Fallback: inserir o botão após o input se não encontrar nenhum container
         buscarCepButton = document.createElement('button');
         buscarCepButton.type = 'button';
         buscarCepButton.id = 'buscar-cep';
@@ -201,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Inserir o botão após o input de CEP
         cepInput.insertAdjacentElement('afterend', buscarCepButton);
-        console.log('Botão de buscar CEP criado dinamicamente');
+        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
       }
     }
     
@@ -662,10 +690,38 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!buscarCepButton) {
       console.log('Botão de buscar CEP não encontrado, criando alternativa...');
       
-      // Verificar se existe um container para o CEP
-      const cepContainer = cepInput.parentElement;
-      if (cepContainer) {
-        // Criar um botão e adicioná-lo após o input de CEP
+      // Procurar pelo container específico da classe cep-input-group
+      let cepInputGroup = cepInput.closest('.cep-input-group');
+      
+      // Se não encontrar o container específico, verificar o container pai
+      if (!cepInputGroup) {
+        const cepContainer = cepInput.parentElement;
+        if (cepContainer) {
+          // Criar um container para agrupar o input e o botão se não existir
+          cepInputGroup = document.createElement('div');
+          cepInputGroup.className = 'cep-input-group';
+          
+          // Substituir o input original pelo novo container
+          cepContainer.replaceChild(cepInputGroup, cepInput);
+          
+          // Adicionar o input ao novo container
+          cepInputGroup.appendChild(cepInput);
+        }
+      }
+      
+      if (cepInputGroup) {
+        // Criar um botão e adicioná-lo ao container
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        
+        // Inserir o botão após o input de CEP
+        cepInputGroup.appendChild(buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente');
+      } else {
+        // Fallback: inserir o botão após o input se não encontrar nenhum container
         buscarCepButton = document.createElement('button');
         buscarCepButton.type = 'button';
         buscarCepButton.id = 'buscar-cep';
@@ -674,7 +730,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Inserir o botão após o input de CEP
         cepInput.insertAdjacentElement('afterend', buscarCepButton);
-        console.log('Botão de buscar CEP criado dinamicamente');
+        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
       }
     }
     
