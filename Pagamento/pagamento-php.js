@@ -131,7 +131,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Adicionar evento ao botão de PIX
   const pixButton = document.getElementById('pix-button');
   if (pixButton) {
+    console.log('Botão PIX encontrado, adicionando evento de clique');
     pixButton.addEventListener('click', function() {
+      console.log('Botão PIX clicado');
       processPixPayment();
     });
   } else {
@@ -241,35 +243,50 @@ function updatePaymentFields() {
 
 // Função para processar o pagamento PIX
 async function processPixPayment() {
+  console.log('Função processPixPayment iniciada');
   // Não é necessário event.preventDefault() aqui pois a função é chamada por um botão do tipo button
   
-  // Obter os valores dos campos
-  const nome = document.getElementById('pix-name').value;
-  const cpf = document.getElementById('pix-cpf').value;
-  const email = document.getElementById('pix-email').value;
-  const telefone = document.getElementById('pix-telefone').value;
-  const totalElement = document.getElementById('total-geral');
-  const total = totalElement ? parseFloat(totalElement.textContent) : 100.00;
-  
-  // Obter os dados de endereço
-  const cep = document.getElementById('cep').value;
-  const rua = document.getElementById('rua').value;
-  const numero = document.getElementById('numero').value;
-  const complemento = document.getElementById('complemento').value;
-  const bairro = document.getElementById('bairro').value;
-  const cidade = document.getElementById('cidade').value;
-  const estado = document.getElementById('estado').value;
-  
-  // Validar os campos
-  if (!nome || !cpf || !email || !telefone) {
-    messageDiv.textContent = "Por favor, preencha todos os campos.";
-    return;
-  }
-  
-  // Mostrar mensagem de carregamento
-  messageDiv.textContent = "Processando pagamento...";
-  
   try {
+    // Obter os valores dos campos
+    const nome = document.getElementById('pix-name')?.value || '';
+    const cpf = document.getElementById('pix-cpf')?.value || '';
+    const email = document.getElementById('pix-email')?.value || '';
+    const telefone = document.getElementById('pix-telefone')?.value || '';
+    const totalElement = document.getElementById('total-geral');
+    const total = totalElement ? parseFloat(totalElement.textContent.replace(',', '.')) : 100.00;
+    
+    console.log('Dados do formulário:', { nome, cpf, email, telefone, total });
+    
+    // Obter os dados de endereço
+    const cep = document.getElementById('cep')?.value || '';
+    const rua = document.getElementById('rua')?.value || '';
+    const numero = document.getElementById('numero')?.value || '';
+    const complemento = document.getElementById('complemento')?.value || '';
+    const bairro = document.getElementById('bairro')?.value || '';
+    const cidade = document.getElementById('cidade')?.value || '';
+    const estado = document.getElementById('estado')?.value || '';
+    
+    // Validar os campos
+    if (!nome || !cpf || !email || !telefone) {
+      console.error('Campos obrigatórios não preenchidos:', { nome, cpf, email, telefone });
+      messageDiv.textContent = "Por favor, preencha todos os campos obrigatórios.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    // Mostrar mensagem de carregamento
+    messageDiv.textContent = "Processando pagamento...";
+    messageDiv.style.color = "#0066cc";
+    
+    // Verificar se o elemento qr-code-container existe
+    const qrCodeContainer = document.getElementById('qr-code-container');
+    if (!qrCodeContainer) {
+      console.error('Elemento qr-code-container não encontrado no DOM');
+      messageDiv.textContent = "Erro: Elemento para exibir QR Code não encontrado.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
     // Preparar os dados para enviar ao backend
     const paymentData = {
       transaction_amount: total,
@@ -300,7 +317,11 @@ async function processPixPayment() {
     
     // Enviar os dados para o backend PHP
     const baseUrl = window.location.origin;
-    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
+    const apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
+    console.log('Enviando requisição para:', apiUrl);
+    console.log('Dados enviados:', JSON.stringify(paymentData));
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -308,37 +329,69 @@ async function processPixPayment() {
       body: JSON.stringify(paymentData)
     });
     
-    const data = await response.json();
+    console.log('Resposta recebida, status:', response.status, response.statusText);
     
-    if (response.ok) {
-      // Exibir o QR Code e as instruções
-      const pixContainer = document.getElementById('pix-container');
-      pixContainer.innerHTML = `
-        <h3>Pagamento PIX Gerado</h3>
-        <p>Escaneie o QR Code abaixo com o aplicativo do seu banco:</p>
-        <img src="data:image/png;base64,${data.qrCodeBase64}" alt="QR Code PIX" style="max-width: 250px;">
-        <p>Ou copie o código PIX:</p>
-        <textarea readonly style="width: 100%; height: 80px;">${data.pixCode}</textarea>
-        <button id="copy-pix-code" class="copy-button">Copiar Código</button>
-        <p>Valor: R$ ${data.transactionAmount.toFixed(2)}</p>
-        <p>ID do Pagamento: ${data.payment_id}</p>
-        <p>Status: ${data.status}</p>
-        <button id="check-payment-status" class="check-status-button">Verificar Status do Pagamento</button>
-      `;
-      
-      // Adicionar evento para copiar o código PIX
-      document.getElementById('copy-pix-code').addEventListener('click', function() {
+    // Tentar obter o corpo da resposta como JSON
+    let data;
+    try {
+      data = await response.json();
+      console.log('Dados recebidos do servidor:', data);
+    } catch (jsonError) {
+      console.error('Erro ao processar resposta JSON:', jsonError);
+      const responseText = await response.text();
+      console.log('Resposta em texto:', responseText);
+      throw new Error('Erro ao processar resposta do servidor');
+    }
+    
+    if (!response.ok) {
+      console.error('Resposta não-OK do servidor:', response.status, data);
+      messageDiv.textContent = `Erro: ${data.error || data.details || 'Falha ao processar o pagamento'}`;
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    // Verificar se os dados necessários estão presentes
+    if (!data.qrCodeBase64 || !data.pixCode) {
+      console.error('Dados do QR Code não encontrados na resposta:', data);
+      messageDiv.textContent = "Erro: Dados do QR Code não encontrados na resposta do servidor.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    // Exibir o QR Code e as instruções
+    qrCodeContainer.innerHTML = `
+      <h3>Pagamento PIX Gerado</h3>
+      <p>Escaneie o QR Code abaixo com o aplicativo do seu banco:</p>
+      <img src="data:image/png;base64,${data.qrCodeBase64}" alt="QR Code PIX" style="max-width: 250px;">
+      <p>Ou copie o código PIX:</p>
+      <textarea readonly style="width: 100%; height: 80px;">${data.pixCode}</textarea>
+      <button id="copy-pix-code" class="copy-button">Copiar Código</button>
+      <p>Valor: R$ ${data.transactionAmount.toFixed(2)}</p>
+      <p>ID do Pagamento: ${data.payment_id}</p>
+      <p>Status: ${data.status}</p>
+      <button id="check-payment-status" class="check-status-button">Verificar Status do Pagamento</button>
+    `;
+    
+    // Adicionar evento para copiar o código PIX
+    const copyButton = document.getElementById('copy-pix-code');
+    if (copyButton) {
+      copyButton.addEventListener('click', function() {
         const textarea = document.querySelector('textarea');
-        textarea.select();
-        document.execCommand('copy');
-        this.textContent = 'Código Copiado!';
-        setTimeout(() => {
-          this.textContent = 'Copiar Código';
-        }, 2000);
+        if (textarea) {
+          textarea.select();
+          document.execCommand('copy');
+          this.textContent = 'Código Copiado!';
+          setTimeout(() => {
+            this.textContent = 'Copiar Código';
+          }, 2000);
+        }
       });
-      
-      // Adicionar evento para verificar o status do pagamento
-      document.getElementById('check-payment-status').addEventListener('click', async function() {
+    }
+    
+    // Adicionar evento para verificar o status do pagamento
+    const checkStatusButton = document.getElementById('check-payment-status');
+    if (checkStatusButton) {
+      checkStatusButton.addEventListener('click', async function() {
         this.textContent = 'Verificando...';
         try {
           const statusResponse = await fetch(`payment-status.php?action=payment-status&id=${data.payment_id}`);
@@ -363,19 +416,24 @@ async function processPixPayment() {
           }, 2000);
         }
       });
-      
-      // Limpar a mensagem
-      messageDiv.textContent = "";
-      
-      // Enviar email com os dados do pagamento e a imagem
-      sendEmailWithPaymentInfo(nome, email, total);
-    } else {
-      // Exibir mensagem de erro
-      messageDiv.textContent = `Erro: ${data.error || 'Falha ao processar o pagamento'}`;
+    }
+    
+    // Limpar a mensagem
+    messageDiv.textContent = "QR Code PIX gerado com sucesso!";
+    messageDiv.style.color = "#008800";
+    
+    // Enviar email com os dados do pagamento e a imagem
+    try {
+      await sendEmailWithPaymentInfo(nome, email, total);
+      console.log('Email enviado com sucesso');
+    } catch (emailError) {
+      console.error('Erro ao enviar email:', emailError);
+      // Não interromper o fluxo se o email falhar
     }
   } catch (error) {
     console.error('Erro ao processar pagamento:', error);
     messageDiv.textContent = "Erro ao processar o pagamento. Por favor, tente novamente.";
+    messageDiv.style.color = "#cc0000";
   }
 }
 
@@ -572,7 +630,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Adicionar evento ao botão de PIX
   const pixButton = document.getElementById('pix-button');
   if (pixButton) {
+    console.log('Botão PIX encontrado, adicionando evento de clique');
     pixButton.addEventListener('click', function() {
+      console.log('Botão PIX clicado');
       processPixPayment();
     });
   } else {
