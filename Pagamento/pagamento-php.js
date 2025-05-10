@@ -132,62 +132,8 @@ function getServerBaseUrl() {
   return window.location.origin;
 }
 
-// Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
-document.addEventListener('DOMContentLoaded', async function() {
-  // Inicializar o Mercado Pago
-  await initMercadoPago();
-  
-  // Carregar a imagem do usuário
-  loadUserImage();
-  
-  // Carregar as informações das miniaturas adicionadas
-  loadMiniaturasAdicionadas();
-  
-  // Carregar o valor total do sessionStorage
-  const totalFromSession = sessionStorage.getItem('totalGeral');
-  if (totalFromSession) {
-    const totalElement = document.getElementById('total-geral');
-    if (totalElement) {
-      totalElement.textContent = totalFromSession;
-    }
-  }
-  
-  // Adicionar evento ao botão de PIX
-  const pixButton = document.getElementById('pix-button');
-  if (pixButton) {
-    pixButton.addEventListener('click', function() {
-      processPixPayment();
-    });
-  } else {
-    console.error('Botão de PIX não encontrado no DOM');
-  }
-  
-  // Configurar eventos relacionados ao CEP
-  const cepInput = document.getElementById('cep');
-  let buscarCepButton = document.getElementById('buscar-cep');
-  
-  if (cepInput) {
-    // Evento de perda de foco para buscar CEP automaticamente
-    cepInput.addEventListener('blur', function() {
-      const cep = this.value;
-      if (cep && cep.replace(/\D/g, '').length === 8) {
-        buscarCep(cep);
-      }
-    });
-    
-    // Adicionar máscara para o campo de CEP
-    cepInput.addEventListener('input', function() {
-      let cep = this.value.replace(/\D/g, '');
-      if (cep.length > 5) {
-        this.value = cep.substring(0, 5) + '-' + cep.substring(5, 8);
-      } else {
-        this.value = cep;
-      }
-    });
-    
-    // Se o botão de buscar CEP não for encontrado, criar um botão alternativo
-    if (!buscarCepButton) {
-      console.log('Botão de buscar CEP não encontrado, criando alternativa...');
+// Nota: A inicialização do DOM já é feita no início do arquivo
+// Esta é uma função duplicada que foi removida para evitar problemas
       
       // Procurar pelo container específico da classe cep-input-group
       let cepInputGroup = cepInput.closest('.cep-input-group');
@@ -633,62 +579,8 @@ async function buscarCep(cep) {
   }
 }
 
-// Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
-document.addEventListener('DOMContentLoaded', async function() {
-  // Inicializar o Mercado Pago
-  await initMercadoPago();
-  
-  // Carregar a imagem do usuário
-  loadUserImage();
-  
-  // Carregar as informações das miniaturas adicionadas
-  loadMiniaturasAdicionadas();
-  
-  // Carregar o valor total do sessionStorage
-  const totalFromSession = sessionStorage.getItem('totalGeral');
-  if (totalFromSession) {
-    const totalElement = document.getElementById('total-geral');
-    if (totalElement) {
-      totalElement.textContent = totalFromSession;
-    }
-  }
-  
-  // Adicionar evento ao botão de PIX
-  const pixButton = document.getElementById('pix-button');
-  if (pixButton) {
-    pixButton.addEventListener('click', function() {
-      processPixPayment();
-    });
-  } else {
-    console.error('Botão de PIX não encontrado no DOM');
-  }
-  
-  // Configurar eventos relacionados ao CEP
-  const cepInput = document.getElementById('cep');
-  let buscarCepButton = document.getElementById('buscar-cep');
-  
-  if (cepInput) {
-    // Evento de perda de foco para buscar CEP automaticamente
-    cepInput.addEventListener('blur', function() {
-      const cep = this.value;
-      if (cep && cep.replace(/\D/g, '').length === 8) {
-        buscarCep(cep);
-      }
-    });
-    
-    // Adicionar máscara para o campo de CEP
-    cepInput.addEventListener('input', function() {
-      let cep = this.value.replace(/\D/g, '');
-      if (cep.length > 5) {
-        this.value = cep.substring(0, 5) + '-' + cep.substring(5, 8);
-      } else {
-        this.value = cep;
-      }
-    });
-    
-    // Se o botão de buscar CEP não for encontrado, criar um botão alternativo
-    if (!buscarCepButton) {
-      console.log('Botão de buscar CEP não encontrado, criando alternativa...');
+// Nota: A inicialização do DOM já é feita no início do arquivo
+// Esta é uma função duplicada que foi removida para evitar problemas
       
       // Procurar pelo container específico da classe cep-input-group
       let cepInputGroup = cepInput.closest('.cep-input-group');
