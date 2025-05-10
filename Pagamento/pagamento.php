@@ -87,10 +87,10 @@
           <input type="text" id="estado" name="estado" placeholder="UF" maxlength="2">
         </div>
 
-        <button type="submit" class="pix-button">Gerar PIX</button>
+        <button type="button" id="pix-button" class="pix-button">Gerar QR Code PIX</button>
 
         <!-- Container para exibir o QR Code e informações do PIX -->
-        <div id="pix-container" class="pix-container"></div>
+        <div id="qr-code-container" class="pix-container"></div>
       </div>
 
       <!-- Campos para Cartão de Crédito (serão preenchidos via JavaScript) -->
