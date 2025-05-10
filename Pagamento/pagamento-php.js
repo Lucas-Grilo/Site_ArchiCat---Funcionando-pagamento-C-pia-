@@ -138,6 +138,22 @@ function getServerBaseUrl() {
   }
 }
 
+// Verificar se o script process-pix.js já foi carregado
+if (typeof window.processPixPaymentAPI === 'undefined') {
+  console.log('Carregando script process-pix.js dinamicamente');
+  // Criar elemento de script e adicionar ao head
+  const scriptElement = document.createElement('script');
+  scriptElement.src = 'process-pix.js';
+  scriptElement.async = true;
+  scriptElement.onload = function() {
+    console.log('Script process-pix.js carregado com sucesso');
+  };
+  scriptElement.onerror = function() {
+    console.error('Erro ao carregar script process-pix.js');
+  };
+  document.head.appendChild(scriptElement);
+}
+
 // Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
 document.addEventListener('DOMContentLoaded', async function() {
   // Inicializar o Mercado Pago
@@ -354,57 +370,53 @@ async function processPixPayment() {
       }
     };
     
-    // Usar a função processPixPaymentAPI do arquivo process-pix.js se disponível
-    let data;
-    if (window.processPixPaymentAPI) {
-      console.log('Usando processPixPaymentAPI com os dados:', paymentData);
-      data = await window.processPixPaymentAPI(paymentData);
-    } else {
-      // Fallback para o método tradicional
-      // Enviar os dados para o backend
-      const baseUrl = getServerBaseUrl();
-      let apiUrl;
+    // Usar a função processPixPaymentAPI do arquivo process-pix.js
+    // Esta função faz a requisição para o backend Node.js em vez do PHP
+    console.log('Usando processPixPaymentAPI com os dados:', paymentData);
+    
+    // Implementação local da função processPixPaymentAPI como fallback
+    if (!window.processPixPaymentAPI) {
+      console.log('Função processPixPaymentAPI não encontrada, usando implementação local');
       
-      // Determinar a URL correta com base no ambiente
-      if (baseUrl === 'http://localhost:3000') {
-        // Em ambiente de desenvolvimento local, usar a rota do Express
-        apiUrl = `${baseUrl}/process-pix`;
-      } else {
-        // Em produção, usar o arquivo PHP
-        apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
-      }
-      
-      console.log('Enviando requisição para:', apiUrl);
-      console.log('Dados enviados:', JSON.stringify(paymentData));
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(paymentData)
-      });
-      
-      console.log('Resposta recebida, status:', response.status, response.statusText);
-      
-      // Tentar obter o corpo da resposta como JSON
-      try {
-        data = await response.json();
-        console.log('Dados recebidos do servidor:', data);
-      } catch (jsonError) {
-        console.error('Erro ao processar resposta JSON:', jsonError);
-        const responseText = await response.text();
-        console.log('Resposta em texto:', responseText);
-        throw new Error('Erro ao processar resposta do servidor');
-      }
+      // Definir a função localmente
+      window.processPixPaymentAPI = async function(paymentData) {
+        try {
+          // Usar sempre a rota do Express para processar o pagamento
+          const baseUrl = getServerBaseUrl();
+          const apiUrl = `${baseUrl}/process-pix`;
+          
+          console.log('Enviando requisição para:', apiUrl);
+          console.log('Dados enviados:', JSON.stringify(paymentData));
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(paymentData)
+          });
+          
+          console.log('Resposta recebida, status:', response.status, response.statusText);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erro na resposta:', errorText);
+            throw new Error(`Erro no servidor: ${response.status} ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          console.log('Dados recebidos do servidor:', data);
+          return data;
+        } catch (error) {
+          console.error('Erro ao processar pagamento PIX:', error);
+          throw error;
+        }
+      };
     }
     
-    if (!response.ok) {
-      console.error('Resposta não-OK do servidor:', response.status, data);
-      messageDiv.textContent = `Erro: ${data.error || data.details || 'Falha ao processar o pagamento'}`;
-      messageDiv.style.color = "#cc0000";
-      return;
-    }
+    // Chamar a função para processar o pagamento
+    const data = await window.processPixPaymentAPI(paymentData);
+    console.log('Dados recebidos do servidor:', data);
     
     // Verificar se os dados necessários estão presentes
     if (!data.qrCodeBase64 || !data.pixCode) {
@@ -672,6 +684,22 @@ async function buscarCep(cep) {
     messageDiv.style.color = "#cc0000";
     return false;
   }
+}
+
+// Verificar se o script process-pix.js já foi carregado
+if (typeof window.processPixPaymentAPI === 'undefined') {
+  console.log('Carregando script process-pix.js dinamicamente');
+  // Criar elemento de script e adicionar ao head
+  const scriptElement = document.createElement('script');
+  scriptElement.src = 'process-pix.js';
+  scriptElement.async = true;
+  scriptElement.onload = function() {
+    console.log('Script process-pix.js carregado com sucesso');
+  };
+  scriptElement.onerror = function() {
+    console.error('Erro ao carregar script process-pix.js');
+  };
+  document.head.appendChild(scriptElement);
 }
 
 // Carregar a imagem do usuário e as informações das miniaturas quando a página for carregada
