@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="pagamento.css"> <!-- Arquivo CSS externo -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://sdk.mercadopago.com/js/v2"></script>
+  <script src="process-pix.js"></script>
 </head>
 
 <body>

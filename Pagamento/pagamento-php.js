@@ -354,42 +354,49 @@ async function processPixPayment() {
       }
     };
     
-    // Enviar os dados para o backend
-    const baseUrl = getServerBaseUrl();
-    let apiUrl;
-    
-    // Determinar a URL correta com base no ambiente
-    if (baseUrl === 'http://localhost:3000') {
-      // Em ambiente de desenvolvimento local, usar a rota do Express
-      apiUrl = `${baseUrl}/process-pix`;
-    } else {
-      // Em produção, usar o arquivo PHP
-      apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
-    }
-    
-    console.log('Enviando requisição para:', apiUrl);
-    console.log('Dados enviados:', JSON.stringify(paymentData));
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(paymentData)
-    });
-    
-    console.log('Resposta recebida, status:', response.status, response.statusText);
-    
-    // Tentar obter o corpo da resposta como JSON
+    // Usar a função processPixPaymentAPI do arquivo process-pix.js se disponível
     let data;
-    try {
-      data = await response.json();
-      console.log('Dados recebidos do servidor:', data);
-    } catch (jsonError) {
-      console.error('Erro ao processar resposta JSON:', jsonError);
-      const responseText = await response.text();
-      console.log('Resposta em texto:', responseText);
-      throw new Error('Erro ao processar resposta do servidor');
+    if (window.processPixPaymentAPI) {
+      console.log('Usando processPixPaymentAPI com os dados:', paymentData);
+      data = await window.processPixPaymentAPI(paymentData);
+    } else {
+      // Fallback para o método tradicional
+      // Enviar os dados para o backend
+      const baseUrl = getServerBaseUrl();
+      let apiUrl;
+      
+      // Determinar a URL correta com base no ambiente
+      if (baseUrl === 'http://localhost:3000') {
+        // Em ambiente de desenvolvimento local, usar a rota do Express
+        apiUrl = `${baseUrl}/process-pix`;
+      } else {
+        // Em produção, usar o arquivo PHP
+        apiUrl = `${baseUrl}/Pagamento/process-pix.php`;
+      }
+      
+      console.log('Enviando requisição para:', apiUrl);
+      console.log('Dados enviados:', JSON.stringify(paymentData));
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
+      
+      console.log('Resposta recebida, status:', response.status, response.statusText);
+      
+      // Tentar obter o corpo da resposta como JSON
+      try {
+        data = await response.json();
+        console.log('Dados recebidos do servidor:', data);
+      } catch (jsonError) {
+        console.error('Erro ao processar resposta JSON:', jsonError);
+        const responseText = await response.text();
+        console.log('Resposta em texto:', responseText);
+        throw new Error('Erro ao processar resposta do servidor');
+      }
     }
     
     if (!response.ok) {
