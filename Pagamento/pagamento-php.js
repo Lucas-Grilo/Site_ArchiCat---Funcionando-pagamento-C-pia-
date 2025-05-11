@@ -231,16 +231,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const pixButton = document.getElementById('pix-button');
   if (pixButton) {
     // Remover eventos anteriores para evitar duplicação
-    const newPixButton = pixButton.cloneNode(true);
+    pixButton.removeEventListener('click', processPixPayment);
     
-    // Adicionar evento de clique ao novo botão
-    newPixButton.addEventListener('click', function() {
+    // Adicionar evento de clique diretamente ao botão
+    pixButton.addEventListener('click', function() {
       console.log('Botão PIX clicado, chamando processPixPayment');
       processPixPayment();
     });
     
-    // Substituir o botão original pelo novo com o evento
-    pixButton.parentNode.replaceChild(newPixButton, pixButton);
     console.log('Evento de clique adicionado ao botão PIX');
   } else {
     console.error('Botão PIX não encontrado no DOM');
@@ -595,21 +593,28 @@ async function processPixPayment() {
         identification: {
           type: "CPF",
           number: cpfNumerico
-        },
-        phone: {
-          area_code: telefone.substring(0, 2),
-          number: telefone.replace(/\D/g, '').substring(2)
-        },
-        address: {
-          zip_code: cep.replace(/\D/g, ''),
-          street_name: rua,
-          street_number: numero,
-          neighborhood: bairro,
-          city: cidade,
-          federal_unit: estado
         }
       }
     };
+    
+    // Adicionar dados de telefone e endereço se disponíveis
+    if (telefone) {
+      paymentData.payer.phone = {
+        area_code: telefone.substring(0, 2),
+        number: telefone.replace(/\D/g, '').substring(2)
+      };
+    }
+    
+    if (cep) {
+      paymentData.payer.address = {
+        zip_code: cep.replace(/\D/g, ''),
+        street_name: rua,
+        street_number: numero,
+        neighborhood: bairro,
+        city: cidade,
+        federal_unit: estado
+      };
+    }
     
     // Enviar os dados para o backend PHP
     const baseUrl = window.location.origin;
@@ -855,7 +860,3 @@ async function processPixPayment() {
     messageDiv.style.color = "#cc0000";
   }
 }
-      sendEmailWithPaymentInfo(nome, email, total);
-    } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
-      messageDiv
