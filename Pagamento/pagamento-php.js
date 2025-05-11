@@ -162,6 +162,41 @@ function loadMiniaturasAdicionadas() {
 // Inicializa o Mercado Pago com a chave pública obtida do backend
 let mp;
 
+// Inicializar a página quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM carregado, inicializando página de pagamento...');
+  
+  // Carregar a imagem do usuário
+  loadUserImage();
+  
+  // Carregar informações das miniaturas
+  loadMiniaturasAdicionadas();
+  
+  // Inicializar o Mercado Pago
+  initMercadoPago();
+  
+  // Configurar o botão de buscar CEP
+  setupCepButton();
+  
+  // Configurar o evento de mudança do método de pagamento
+  if (paymentMethod) {
+    paymentMethod.addEventListener('change', updatePaymentFields);
+    // Inicializar os campos com base no método selecionado inicialmente
+    updatePaymentFields();
+  } else {
+    console.error('Elemento payment-method não encontrado no DOM');
+  }
+  
+  // Configurar o botão PIX
+  const pixButton = document.getElementById('pix-button');
+  if (pixButton) {
+    pixButton.addEventListener('click', processPixPayment);
+    console.log('Evento de clique adicionado ao botão PIX');
+  } else {
+    console.error('Botão PIX não encontrado no DOM');
+  }
+});
+
 // Função para obter a chave pública do Mercado Pago do backend
 async function initMercadoPago() {
   try {
@@ -300,6 +335,7 @@ function removeCreditCardFields() {
 function updatePaymentFields() {
   const selectedMethod = paymentMethod.value;
   const creditCardButton = document.getElementById("credit-card-button");
+  console.log('Método de pagamento selecionado:', selectedMethod);
 
   if (selectedMethod === "credit-card") {
     // Mostra campos de cartão e esconde campos PIX
@@ -325,11 +361,26 @@ function updatePaymentFields() {
     document.getElementById('pix-cpf').setAttribute('required', '');
     document.getElementById('pix-email').setAttribute('required', '');
     document.getElementById('pix-telefone').setAttribute('required', '');
+    
+    // Configurar o botão PIX
+    const pixButton = document.getElementById('pix-button');
+    if (pixButton) {
+      // Remover eventos anteriores para evitar duplicação
+      pixButton.replaceWith(pixButton.cloneNode(true));
+      const newPixButton = document.getElementById('pix-button');
+      
+      // Adicionar evento de clique
+      newPixButton.addEventListener('click', processPixPayment);
+      console.log('Evento de clique adicionado ao botão PIX');
+    } else {
+      console.error('Botão PIX não encontrado no DOM');
+    }
   }
 }
 
 // Função para processar o pagamento PIX
 async function processPixPayment() {
+  console.log('Função processPixPayment chamada');
   // Não é necessário event.preventDefault() aqui pois a função é chamada por um botão do tipo button
   
   // Obter os valores dos campos
@@ -389,6 +440,8 @@ async function processPixPayment() {
     
     // Enviar os dados para o backend PHP
     const baseUrl = window.location.origin;
+    console.log('Enviando dados para:', `${baseUrl}/Pagamento/process-pix.php`);
+    console.log('Dados enviados:', JSON.stringify(paymentData));
     const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
       method: 'POST',
       headers: {
@@ -401,7 +454,20 @@ async function processPixPayment() {
     
     if (response.ok) {
       // Exibir o QR Code e as instruções
-      const pixContainer = document.getElementById('pix-container');
+      const pixContainer = document.getElementById('qr-code-container');
+      if (!pixContainer) {
+        console.error('Elemento qr-code-container não encontrado no DOM');
+        messageDiv.textContent = "Erro ao exibir QR Code. Elemento container não encontrado.";
+        return;
+      }
+      
+      // Verificar se os dados do QR code estão presentes
+      if (!data.qrCodeBase64) {
+        console.error('QR Code Base64 não encontrado na resposta:', data);
+        messageDiv.textContent = "Erro ao gerar QR Code. Dados incompletos na resposta.";
+        return;
+      }
+      
       pixContainer.innerHTML = `
         <h3>Pagamento PIX Gerado</h3>
         <p>Escaneie o QR Code abaixo com o aplicativo do seu banco:</p>

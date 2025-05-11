@@ -96,11 +96,46 @@ curl_close($ch);
 // Processar a resposta
 $payment_response = json_decode($response, true);
 
+// Registrar a resposta completa para depuração
+error_log('Resposta do Mercado Pago: ' . $response);
+
 if ($http_code >= 400 || !isset($payment_response['point_of_interaction'])) {
     http_response_code($http_code ?: 500);
     echo json_encode([
         'error' => 'Erro ao processar o pagamento',
-        'details' => $payment_response['message'] ?? 'Erro ao gerar o PIX'
+        'details' => $payment_response['message'] ?? 'Erro ao gerar o PIX',
+        'response' => $payment_response // Incluir a resposta completa para depuração
+    ]);
+    exit;
+}
+
+// Verificar se os dados do QR code estão presentes
+if (!isset($payment_response['point_of_interaction']['transaction_data']) || 
+    !isset($payment_response['point_of_interaction']['transaction_data']['qr_code_base64']) ||
+    !isset($payment_response['point_of_interaction']['transaction_data']['qr_code'])) {
+    
+    error_log('Dados do QR code não encontrados na resposta: ' . json_encode($payment_response));
+    
+    // Tentar obter os dados de outra forma ou usar valores padrão
+    $qr_code_base64 = $payment_response['point_of_interaction']['transaction_data']['qr_code_base64'] ?? '';
+    $qr_code = $payment_response['point_of_interaction']['transaction_data']['qr_code'] ?? '';
+    
+    // Se não tiver o QR code base64, tentar gerar um a partir do código PIX
+    if (empty($qr_code_base64) && !empty($qr_code)) {
+        // Tentar gerar QR code usando uma biblioteca ou serviço externo
+        // Por enquanto, apenas registrar o erro
+        error_log('QR code base64 não encontrado, mas código PIX está disponível: ' . $qr_code);
+    }
+    
+    // Retornar os dados disponíveis
+    echo json_encode([
+        'payment_id' => $payment_response['id'],
+        'status' => $payment_response['status'],
+        'qrCodeBase64' => $qr_code_base64,
+        'pixCode' => $qr_code,
+        'transactionAmount' => $payment_response['transaction_amount'],
+        'dateOfExpiration' => $payment_response['date_of_expiration'] ?? null,
+        'warning' => 'Alguns dados do QR code podem estar ausentes'
     ]);
     exit;
 }
@@ -112,5 +147,5 @@ echo json_encode([
     'qrCodeBase64' => $payment_response['point_of_interaction']['transaction_data']['qr_code_base64'],
     'pixCode' => $payment_response['point_of_interaction']['transaction_data']['qr_code'],
     'transactionAmount' => $payment_response['transaction_amount'],
-    'dateOfExpiration' => $payment_response['date_of_expiration']
+    'dateOfExpiration' => $payment_response['date_of_expiration'] ?? null
 ]);
