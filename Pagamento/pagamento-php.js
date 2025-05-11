@@ -221,6 +221,106 @@ function getServerBaseUrl() {
   return window.location.origin;
 }
 
+// Função para buscar CEP via API ViaCEP
+async function buscarCep(cep) {
+  console.log('Função buscarCep chamada com:', cep);
+  
+  // Limpar o CEP, mantendo apenas números
+  cep = cep.replace(/\D/g, '');
+  console.log('CEP após limpeza:', cep);
+  
+  if (cep.length !== 8) {
+    console.log('CEP inválido, comprimento:', cep.length);
+    messageDiv.textContent = "CEP inválido. Digite um CEP com 8 dígitos.";
+    messageDiv.style.color = "#cc0000";
+    return false;
+  }
+  
+  // Mostrar mensagem de carregamento
+  messageDiv.textContent = "Buscando CEP...";
+  messageDiv.style.color = "#0066cc";
+  
+  try {
+    console.log(`Iniciando requisição para CEP: ${cep}`);
+    
+    // Usar URL com protocolo HTTPS para evitar problemas de segurança
+    const url = `https://viacep.com.br/ws/${cep}/json/`;
+    console.log('URL da requisição:', url);
+    
+    // Fazer requisição para a API ViaCEP com opções adicionais para evitar problemas de CORS
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      mode: 'cors'
+    });
+    
+    console.log('Resposta da API ViaCEP:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Dados recebidos da API:', data);
+    
+    // Verificar se a API retornou erro
+    if (data.erro) {
+      console.log('API retornou erro para o CEP');
+      messageDiv.textContent = "CEP não encontrado.";
+      messageDiv.style.color = "#cc0000";
+      return false;
+    }
+    
+    // Preencher os campos de endereço
+    const ruaElement = document.getElementById('rua');
+    const bairroElement = document.getElementById('bairro');
+    const cidadeElement = document.getElementById('cidade');
+    const estadoElement = document.getElementById('estado');
+    const numeroElement = document.getElementById('numero');
+    
+    console.log('Elementos do DOM encontrados:', {
+      rua: !!ruaElement,
+      bairro: !!bairroElement,
+      cidade: !!cidadeElement,
+      estado: !!estadoElement,
+      numero: !!numeroElement
+    });
+    
+    if (ruaElement) ruaElement.value = data.logradouro || '';
+    if (bairroElement) bairroElement.value = data.bairro || '';
+    if (cidadeElement) cidadeElement.value = data.localidade || '';
+    if (estadoElement) estadoElement.value = data.uf || '';
+    
+    // Remover o atributo readonly para permitir edição se necessário
+    if (ruaElement) ruaElement.removeAttribute('readonly');
+    if (bairroElement) bairroElement.removeAttribute('readonly');
+    if (cidadeElement) cidadeElement.removeAttribute('readonly');
+    if (estadoElement) estadoElement.removeAttribute('readonly');
+    
+    // Focar no campo número após preencher o endereço
+    if (numeroElement) numeroElement.focus();
+    
+    // Limpar mensagem de erro se houver
+    messageDiv.textContent = "CEP encontrado com sucesso!";
+    messageDiv.style.color = "#008800";
+    
+    // Após 3 segundos, limpar a mensagem de sucesso
+    setTimeout(() => {
+      messageDiv.textContent = "";
+    }, 3000);
+    
+    console.log('Busca de CEP concluída com sucesso');
+    return true;
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    messageDiv.textContent = "Erro ao buscar CEP. Tente novamente.";
+    messageDiv.style.color = "#cc0000";
+    return false;
+  }
+}
+
 // Função para configurar o botão de buscar CEP
 function setupCepButton() {
   console.log('Configurando botão de buscar CEP...');
@@ -239,47 +339,64 @@ function setupCepButton() {
   if (!buscarCepButton) {
     console.log('Botão de buscar CEP não encontrado, criando dinamicamente...');
     
-    // Procurar pelo container específico da classe cep-input-group
-    let cepInputGroup = cepInput.closest('.cep-input-group');
-    
-    // Se não encontrar o container específico, verificar o container pai
-    if (!cepInputGroup) {
-      const cepContainer = cepInput.parentElement;
-      if (cepContainer) {
-        // Criar um container para agrupar o input e o botão se não existir
-        cepInputGroup = document.createElement('div');
-        cepInputGroup.className = 'cep-input-group';
-        
-        // Substituir o input original pelo novo container
-        cepContainer.replaceChild(cepInputGroup, cepInput);
-        
-        // Adicionar o input ao novo container
-        cepInputGroup.appendChild(cepInput);
-      }
-    }
+    // Verificar se existe o container cep-input-group no HTML
+    const cepInputGroup = document.querySelector('.cep-input-group');
     
     if (cepInputGroup) {
-      // Criar um botão e adicioná-lo ao container
+      // Criar um botão e adicioná-lo ao container existente
       buscarCepButton = document.createElement('button');
       buscarCepButton.type = 'button';
       buscarCepButton.id = 'buscar-cep';
       buscarCepButton.className = 'buscar-cep-button';
       buscarCepButton.textContent = 'Buscar';
       
-      // Inserir o botão após o input de CEP
+      // Inserir o botão no container
       cepInputGroup.appendChild(buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo');
+      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo existente');
     } else {
-      // Fallback: inserir o botão após o input se não encontrar nenhum container
-      buscarCepButton = document.createElement('button');
-      buscarCepButton.type = 'button';
-      buscarCepButton.id = 'buscar-cep';
-      buscarCepButton.className = 'buscar-cep-button';
-      buscarCepButton.textContent = 'Buscar';
+      // Se não encontrar o container, criar um novo container
+      const cepContainer = cepInput.parentElement;
       
-      // Inserir o botão após o input de CEP
-      cepInput.insertAdjacentElement('afterend', buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente (fallback)');
+      if (cepContainer) {
+        // Criar um novo container para agrupar o input e o botão
+        const newCepInputGroup = document.createElement('div');
+        newCepInputGroup.className = 'cep-input-group';
+        newCepInputGroup.style.display = 'flex';
+        newCepInputGroup.style.gap = '10px';
+        
+        // Criar o botão
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        buscarCepButton.style.padding = '8px 15px';
+        buscarCepButton.style.cursor = 'pointer';
+        
+        // Substituir o input original pelo novo container
+        cepContainer.insertBefore(newCepInputGroup, cepInput);
+        cepContainer.removeChild(cepInput);
+        
+        // Adicionar o input e o botão ao novo container
+        newCepInputGroup.appendChild(cepInput);
+        newCepInputGroup.appendChild(buscarCepButton);
+        
+        console.log('Criado novo container cep-input-group com botão de buscar CEP');
+      } else {
+        // Fallback: inserir o botão após o input se não encontrar nenhum container
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        buscarCepButton.style.marginLeft = '10px';
+        buscarCepButton.style.padding = '8px 15px';
+        buscarCepButton.style.cursor = 'pointer';
+        
+        // Inserir o botão após o input de CEP
+        cepInput.insertAdjacentElement('afterend', buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
+      }
     }
   } else {
     console.log('Botão de buscar CEP já existe no DOM');
@@ -289,8 +406,9 @@ function setupCepButton() {
   buscarCepButton = document.getElementById('buscar-cep'); // Obter novamente para garantir
   if (buscarCepButton) {
     // Remover eventos anteriores para evitar duplicação
-    buscarCepButton.replaceWith(buscarCepButton.cloneNode(true));
-    buscarCepButton = document.getElementById('buscar-cep');
+    const newButton = buscarCepButton.cloneNode(true);
+    buscarCepButton.parentNode.replaceChild(newButton, buscarCepButton);
+    buscarCepButton = newButton;
     
     buscarCepButton.addEventListener('click', function() {
       const cep = cepInput.value;
@@ -298,11 +416,127 @@ function setupCepButton() {
         buscarCep(cep);
       } else {
         messageDiv.textContent = "Por favor, digite um CEP válido.";
+        messageDiv.style.color = "#cc0000";
       }
     });
-    console.log('Evento adicionado ao botão de buscar CEP');
+    
+    // Adicionar evento de tecla Enter no campo de CEP
+    cepInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Evitar envio do formulário
+        const cep = cepInput.value;
+        if (cep) {
+          buscarCep(cep);
+        } else {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+          messageDiv.style.color = "#cc0000";
+        }
+      }
+    });
+    
+    console.log('Eventos adicionados ao botão de buscar CEP e campo de CEP');
   } else {
     console.error('Botão de buscar CEP não encontrado após tentativa de criação');
+  }
+}
+
+// Função para buscar CEP via API ViaCEP
+async function buscarCep(cep) {
+  console.log('Função buscarCep chamada com:', cep);
+  
+  // Limpar o CEP, mantendo apenas números
+  cep = cep.replace(/\D/g, '');
+  console.log('CEP após limpeza:', cep);
+  
+  if (cep.length !== 8) {
+    console.log('CEP inválido, comprimento:', cep.length);
+    messageDiv.textContent = "CEP inválido. Digite um CEP com 8 dígitos.";
+    messageDiv.style.color = "#cc0000";
+    return false;
+  }
+  
+  // Mostrar mensagem de carregamento
+  messageDiv.textContent = "Buscando CEP...";
+  messageDiv.style.color = "#0066cc";
+  
+  try {
+    console.log(`Iniciando requisição para CEP: ${cep}`);
+    
+    // Usar URL com protocolo HTTPS para evitar problemas de segurança
+    const url = `https://viacep.com.br/ws/${cep}/json/`;
+    console.log('URL da requisição:', url);
+    
+    // Fazer requisição para a API ViaCEP com opções adicionais para evitar problemas de CORS
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      mode: 'cors'
+    });
+    
+    console.log('Resposta da API ViaCEP:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Dados recebidos da API:', data);
+    
+    // Verificar se a API retornou erro
+    if (data.erro) {
+      console.log('API retornou erro para o CEP');
+      messageDiv.textContent = "CEP não encontrado.";
+      messageDiv.style.color = "#cc0000";
+      return false;
+    }
+    
+    // Preencher os campos de endereço
+    const ruaElement = document.getElementById('rua');
+    const bairroElement = document.getElementById('bairro');
+    const cidadeElement = document.getElementById('cidade');
+    const estadoElement = document.getElementById('estado');
+    const numeroElement = document.getElementById('numero');
+    
+    console.log('Elementos do DOM encontrados:', {
+      rua: !!ruaElement,
+      bairro: !!bairroElement,
+      cidade: !!cidadeElement,
+      estado: !!estadoElement,
+      numero: !!numeroElement
+    });
+    
+    if (ruaElement) ruaElement.value = data.logradouro || '';
+    if (bairroElement) bairroElement.value = data.bairro || '';
+    if (cidadeElement) cidadeElement.value = data.localidade || '';
+    if (estadoElement) estadoElement.value = data.uf || '';
+    
+    // Remover o atributo readonly para permitir edição se necessário
+    if (ruaElement) ruaElement.removeAttribute('readonly');
+    if (bairroElement) bairroElement.removeAttribute('readonly');
+    if (cidadeElement) cidadeElement.removeAttribute('readonly');
+    if (estadoElement) estadoElement.removeAttribute('readonly');
+    
+    // Focar no campo número após preencher o endereço
+    if (numeroElement) numeroElement.focus();
+    
+    // Limpar mensagem de erro se houver
+    messageDiv.textContent = "CEP encontrado com sucesso!";
+    messageDiv.style.color = "#008800";
+    
+    // Após 3 segundos, limpar a mensagem de sucesso
+    setTimeout(() => {
+      messageDiv.textContent = "";
+    }, 3000);
+    
+    console.log('Busca de CEP concluída com sucesso');
+    return true;
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    messageDiv.textContent = "Erro ao buscar CEP. Tente novamente.";
+    messageDiv.style.color = "#cc0000";
+    return false;
   }
 }
 
@@ -763,47 +997,64 @@ function setupCepButton() {
   if (!buscarCepButton) {
     console.log('Botão de buscar CEP não encontrado, criando dinamicamente...');
     
-    // Procurar pelo container específico da classe cep-input-group
-    let cepInputGroup = cepInput.closest('.cep-input-group');
-    
-    // Se não encontrar o container específico, verificar o container pai
-    if (!cepInputGroup) {
-      const cepContainer = cepInput.parentElement;
-      if (cepContainer) {
-        // Criar um container para agrupar o input e o botão se não existir
-        cepInputGroup = document.createElement('div');
-        cepInputGroup.className = 'cep-input-group';
-        
-        // Substituir o input original pelo novo container
-        cepContainer.replaceChild(cepInputGroup, cepInput);
-        
-        // Adicionar o input ao novo container
-        cepInputGroup.appendChild(cepInput);
-      }
-    }
+    // Verificar se existe o container cep-input-group no HTML
+    const cepInputGroup = document.querySelector('.cep-input-group');
     
     if (cepInputGroup) {
-      // Criar um botão e adicioná-lo ao container
+      // Criar um botão e adicioná-lo ao container existente
       buscarCepButton = document.createElement('button');
       buscarCepButton.type = 'button';
       buscarCepButton.id = 'buscar-cep';
       buscarCepButton.className = 'buscar-cep-button';
       buscarCepButton.textContent = 'Buscar';
       
-      // Inserir o botão após o input de CEP
+      // Inserir o botão no container
       cepInputGroup.appendChild(buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo');
+      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo existente');
     } else {
-      // Fallback: inserir o botão após o input se não encontrar nenhum container
-      buscarCepButton = document.createElement('button');
-      buscarCepButton.type = 'button';
-      buscarCepButton.id = 'buscar-cep';
-      buscarCepButton.className = 'buscar-cep-button';
-      buscarCepButton.textContent = 'Buscar';
+      // Se não encontrar o container, criar um novo container
+      const cepContainer = cepInput.parentElement;
       
-      // Inserir o botão após o input de CEP
-      cepInput.insertAdjacentElement('afterend', buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente (fallback)');
+      if (cepContainer) {
+        // Criar um novo container para agrupar o input e o botão
+        const newCepInputGroup = document.createElement('div');
+        newCepInputGroup.className = 'cep-input-group';
+        newCepInputGroup.style.display = 'flex';
+        newCepInputGroup.style.gap = '10px';
+        
+        // Criar o botão
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        buscarCepButton.style.padding = '8px 15px';
+        buscarCepButton.style.cursor = 'pointer';
+        
+        // Substituir o input original pelo novo container
+        cepContainer.insertBefore(newCepInputGroup, cepInput);
+        cepContainer.removeChild(cepInput);
+        
+        // Adicionar o input e o botão ao novo container
+        newCepInputGroup.appendChild(cepInput);
+        newCepInputGroup.appendChild(buscarCepButton);
+        
+        console.log('Criado novo container cep-input-group com botão de buscar CEP');
+      } else {
+        // Fallback: inserir o botão após o input se não encontrar nenhum container
+        buscarCepButton = document.createElement('button');
+        buscarCepButton.type = 'button';
+        buscarCepButton.id = 'buscar-cep';
+        buscarCepButton.className = 'buscar-cep-button';
+        buscarCepButton.textContent = 'Buscar';
+        buscarCepButton.style.marginLeft = '10px';
+        buscarCepButton.style.padding = '8px 15px';
+        buscarCepButton.style.cursor = 'pointer';
+        
+        // Inserir o botão após o input de CEP
+        cepInput.insertAdjacentElement('afterend', buscarCepButton);
+        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
+      }
     }
   } else {
     console.log('Botão de buscar CEP já existe no DOM');
@@ -813,8 +1064,9 @@ function setupCepButton() {
   buscarCepButton = document.getElementById('buscar-cep'); // Obter novamente para garantir
   if (buscarCepButton) {
     // Remover eventos anteriores para evitar duplicação
-    buscarCepButton.replaceWith(buscarCepButton.cloneNode(true));
-    buscarCepButton = document.getElementById('buscar-cep');
+    const newButton = buscarCepButton.cloneNode(true);
+    buscarCepButton.parentNode.replaceChild(newButton, buscarCepButton);
+    buscarCepButton = newButton;
     
     buscarCepButton.addEventListener('click', function() {
       const cep = cepInput.value;
@@ -822,14 +1074,29 @@ function setupCepButton() {
         buscarCep(cep);
       } else {
         messageDiv.textContent = "Por favor, digite um CEP válido.";
+        messageDiv.style.color = "#cc0000";
       }
     });
-    console.log('Evento adicionado ao botão de buscar CEP');
+    
+    // Adicionar evento de tecla Enter no campo de CEP
+    cepInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Evitar envio do formulário
+        const cep = cepInput.value;
+        if (cep) {
+          buscarCep(cep);
+        } else {
+          messageDiv.textContent = "Por favor, digite um CEP válido.";
+          messageDiv.style.color = "#cc0000";
+        }
+      }
+    });
+    
+    console.log('Eventos adicionados ao botão de buscar CEP e campo de CEP');
   } else {
     console.error('Botão de buscar CEP não encontrado após tentativa de criação');
   }
 }
-
 
 // Inicializar a exibição dos campos com base no método de pagamento selecionado
 updatePaymentFields();
