@@ -232,13 +232,15 @@ document.addEventListener('DOMContentLoaded', function() {
   if (pixButton) {
     // Remover eventos anteriores para evitar duplicação
     const newPixButton = pixButton.cloneNode(true);
-    pixButton.parentNode.replaceChild(newPixButton, pixButton);
     
     // Adicionar evento de clique ao novo botão
     newPixButton.addEventListener('click', function() {
       console.log('Botão PIX clicado, chamando processPixPayment');
       processPixPayment();
     });
+    
+    // Substituir o botão original pelo novo com o evento
+    pixButton.parentNode.replaceChild(newPixButton, pixButton);
     console.log('Evento de clique adicionado ao botão PIX');
   } else {
     console.error('Botão PIX não encontrado no DOM');
