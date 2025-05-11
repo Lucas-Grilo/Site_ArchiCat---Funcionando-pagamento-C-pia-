@@ -227,38 +227,25 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('Elemento payment-method não encontrado no DOM');
   }
   
-  // Configurar o botão PIX - método direto sem substituição do botão
+  // Configurar o botão PIX - implementação direta e simples
   console.log('Configurando botão PIX...');
   const pixButton = document.getElementById('pix-button');
   
   if (pixButton) {
-    console.log('Botão PIX encontrado no DOM, adicionando evento de clique diretamente');
+    console.log('Botão PIX encontrado no DOM');
     
-    // Remover qualquer evento anterior para evitar duplicação
-    pixButton.removeEventListener('click', processPixButtonClick);
-    
-    // Função para lidar com o clique do botão PIX
-    function processPixButtonClick(e) {
-      e.preventDefault(); // Prevenir comportamento padrão
-      console.log('Botão PIX clicado, chamando processPixPayment');
+    // Adicionar evento de clique diretamente sem usar métodos complexos
+    pixButton.addEventListener('click', function() {
+      console.log('Botão PIX clicado!');
+      alert('Botão PIX clicado!');
       
       // Adicionar feedback visual
-      pixButton.textContent = 'Processando...';
-      pixButton.disabled = true;
-      
-      // Garantir que messageDiv esteja definido
-      const msgDiv = document.getElementById('message');
-      if (msgDiv) {
-        msgDiv.textContent = "Iniciando processamento do PIX...";
-        msgDiv.style.color = "#0066cc";
-      }
+      this.textContent = 'Processando...';
+      this.disabled = true;
       
       // Chamar a função processPixPayment diretamente
       processPixPayment();
-    }
-    
-    // Adicionar o evento de clique
-    pixButton.addEventListener('click', processPixButtonClick);
+    });
     
     console.log('Evento de clique adicionado ao botão PIX com sucesso');
   } else {
@@ -512,35 +499,16 @@ function setupCepButton() {
 // Função para processar pagamento PIX
 async function processPixPayment() {
   console.log('Função processPixPayment chamada');
-  // Adicionar log para depuração
   console.log('Iniciando processamento de pagamento PIX');
   
-  // Reativar o botão PIX para permitir nova tentativa em caso de erro
-  const pixButton = document.getElementById('pix-button');
-  if (pixButton) {
-    // Configurar timeout para reativar o botão após 30 segundos (caso algo dê errado)
-    setTimeout(() => {
-      if (pixButton.disabled) {
-        pixButton.disabled = false;
-        pixButton.textContent = 'Gerar QR Code PIX';
-        console.log('Botão PIX reativado após timeout');
-      }
-    }, 30000);
-  }
-  
   // Verificar se o elemento messageDiv existe
-  const msgDiv = document.getElementById('message');
-  if (!msgDiv) {
+  if (!messageDiv) {
     console.error('Elemento messageDiv não encontrado no DOM');
     alert('Erro ao processar pagamento: Elemento de mensagem não encontrado.');
     return;
   }
   
-  // Usar a referência local para messageDiv para garantir que estamos usando o elemento correto
-  msgDiv.textContent = "Processando pagamento PIX, aguarde...";
-  msgDiv.style.color = "#0066cc";
-  
-  // Adicionar mensagem de depuração no DOM
+  // Mostrar mensagem de processamento
   messageDiv.textContent = "Processando pagamento PIX, aguarde...";
   messageDiv.style.color = "#0066cc";
   
@@ -648,7 +616,7 @@ async function processPixPayment() {
       };
     }
     
-    if (cep) {
+    if (cep && rua && numero && bairro && cidade && estado) {
       paymentData.payer.address = {
         zip_code: cep.replace(/\D/g, ''),
         street_name: rua,
@@ -659,253 +627,33 @@ async function processPixPayment() {
       };
     }
     
-    // Enviar os dados para o backend PHP
-    const baseUrl = window.location.origin;
-    const endpoint = `${baseUrl}/Pagamento/process-pix.php`;
-    console.log('Enviando dados para:', endpoint);
-    console.log('Dados enviados:', JSON.stringify(paymentData));
+    console.log('Dados de pagamento preparados:', paymentData);
     
+    // Fazer requisição para o backend
     try {
-      // Adicionar mensagem de depuração no DOM
-      messageDiv.textContent = "Conectando ao servidor, aguarde...";
-      
-      const response = await fetch(endpoint, {
+      const baseUrl = getServerBaseUrl();
+      const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(paymentData),
-        // Adicionar opções para evitar problemas de cache
-        cache: 'no-cache',
-        credentials: 'same-origin'
+        body: JSON.stringify(paymentData)
       });
       
-      console.log('Resposta recebida do servidor:', response.status, response.statusText);
+      console.log('Resposta do servidor:', response.status, response.statusText);
       
-      if (!response.ok) {
-        let errorMessage = `Erro no servidor: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          console.error('Detalhes do erro:', errorData);
-          if (errorData.error) {
-            errorMessage += ` - ${errorData.error}`;
-          }
-          if (errorData.details) {
-            errorMessage += ` (${errorData.details})`;
-          }
-        } catch (jsonError) {
-          const errorText = await response.text();
-          console.error('Erro na resposta do servidor (texto):', errorText);
-        }
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Dados recebidos do servidor:', data);
         
-        messageDiv.textContent = errorMessage;
-        messageDiv.style.color = "#cc0000";
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Dados recebidos do servidor:', data);
-      
-      // Exibir o QR Code e as instruções
-      const pixContainer = document.getElementById('qr-code-container');
-      if (!pixContainer) {
-        console.error('Elemento qr-code-container não encontrado no DOM');
-        messageDiv.textContent = "Erro ao exibir QR Code. Elemento container não encontrado.";
-        messageDiv.style.color = "#cc0000";
-        return;
-      }
-      
-      // Verificar se os dados do QR code estão presentes
-      if (!data.qrCodeBase64) {
-        console.error('QR Code Base64 não encontrado na resposta:', data);
-        messageDiv.textContent = "Erro ao gerar QR Code. Dados incompletos na resposta.";
-        messageDiv.style.color = "#cc0000";
-        return;
-      }
-      
-      // Limpar o container antes de adicionar o novo conteúdo
-      pixContainer.innerHTML = '';
-      
-      // Criar elementos individualmente para melhor controle
-      const title = document.createElement('h3');
-      title.textContent = 'Pagamento PIX Gerado';
-      pixContainer.appendChild(title);
-      
-      const scanText = document.createElement('p');
-      scanText.textContent = 'Escaneie o QR Code abaixo com o aplicativo do seu banco:';
-      pixContainer.appendChild(scanText);
-      
-      const qrImg = document.createElement('img');
-      qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
-      qrImg.alt = 'QR Code PIX';
-      qrImg.style.maxWidth = '250px';
-      pixContainer.appendChild(qrImg);
-      
-      const copyText = document.createElement('p');
-      copyText.textContent = 'Ou copie o código PIX:';
-      pixContainer.appendChild(copyText);
-      
-      const pixCodeArea = document.createElement('textarea');
-      pixCodeArea.readOnly = true;
-      pixCodeArea.style.width = '100%';
-      pixCodeArea.style.height = '80px';
-      pixCodeArea.value = data.pixCode;
-      pixCodeArea.id = 'pix-code-text';
-      pixContainer.appendChild(pixCodeArea);
-      
-      const copyButton = document.createElement('button');
-      copyButton.textContent = 'Copiar Código';
-      copyButton.className = 'copy-button';
-      copyButton.id = 'copy-pix-code';
-      pixContainer.appendChild(copyButton);
-      
-      const valueText = document.createElement('p');
-      valueText.textContent = `Valor: R$ ${data.transactionAmount.toFixed(2)}`;
-      pixContainer.appendChild(valueText);
-      
-      const idText = document.createElement('p');
-      idText.textContent = `ID do Pagamento: ${data.payment_id}`;
-      pixContainer.appendChild(idText);
-      
-      const statusText = document.createElement('p');
-      statusText.textContent = `Status: ${data.status}`;
-      statusText.id = 'payment-status-text';
-      pixContainer.appendChild(statusText);
-      
-      const checkButton = document.createElement('button');
-      checkButton.textContent = 'Verificar Status do Pagamento';
-      checkButton.className = 'check-status-button';
-      checkButton.id = 'check-payment-status';
-      pixContainer.appendChild(checkButton);
-      
-      // Adicionar evento para copiar o código PIX
-      copyButton.addEventListener('click', function() {
-        const pixCodeText = document.getElementById('pix-code-text');
-        if (pixCodeText) {
-          pixCodeText.select();
-          try {
-            // Tentar usar a API moderna de clipboard
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(pixCodeText.value)
-                .then(() => {
-                  this.textContent = 'Código Copiado!';
-                  setTimeout(() => {
-                    this.textContent = 'Copiar Código';
-                  }, 2000);
-                })
-                .catch(err => {
-                  console.error('Erro ao copiar texto com clipboard API:', err);
-                  // Fallback para o método antigo
-                  document.execCommand('copy');
-                  this.textContent = 'Código Copiado!';
-                  setTimeout(() => {
-                    this.textContent = 'Copiar Código';
-                  }, 2000);
-                });
-            } else {
-              // Fallback para navegadores que não suportam clipboard API
-              document.execCommand('copy');
-              this.textContent = 'Código Copiado!';
-              setTimeout(() => {
-                this.textContent = 'Copiar Código';
-              }, 2000);
-            }
-          } catch (err) {
-            console.error('Erro ao copiar texto:', err);
-            alert('Não foi possível copiar o código automaticamente. Por favor, selecione o texto e copie manualmente.');
-          }
-        }
-      });
-      
-      // Adicionar evento para verificar o status do pagamento
-      checkButton.addEventListener('click', async function() {
-        this.textContent = 'Verificando...';
-        this.disabled = true;
-        
-        try {
-          const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${data.payment_id}`);
-          
-          if (!statusResponse.ok) {
-            throw new Error(`Erro ao verificar status: ${statusResponse.status} ${statusResponse.statusText}`);
-          }
-          
-          const statusData = await statusResponse.json();
-          console.log('Status do pagamento:', statusData);
-          
-          const statusElement = document.getElementById('payment-status-text');
-          if (statusElement) {
-            statusElement.textContent = `Status: ${statusData.status || 'Pendente'} ${statusData.status_detail ? `(${statusData.status_detail})` : ''}`;
-          }
-          
-          if (statusData.is_approved) {
-            // Redirecionar para a página de sucesso
-            messageDiv.textContent = "Pagamento aprovado! Redirecionando...";
-            messageDiv.style.color = "#008800";
-            setTimeout(() => {
-              window.location.href = 'success.html';
-            }, 1500);
-          } else {
-            this.textContent = 'Verificar Novamente';
-            this.disabled = false;
-          }
-        } catch (error) {
-          console.error('Erro ao verificar status:', error);
-          this.textContent = 'Erro ao Verificar';
-          setTimeout(() => {
-            this.textContent = 'Verificar Status do Pagamento';
-            this.disabled = false;
-          }, 2000);
-        }
-      });
-      
-      // Ocultar o botão PIX original para evitar múltiplos pagamentos
-      const pixButton = document.getElementById('pix-button');
-      if (pixButton) {
-        pixButton.style.display = 'none';
-      }
-      
-      // Limpar a mensagem de carregamento
-      messageDiv.textContent = "QR Code PIX gerado com sucesso!";
-      messageDiv.style.color = "#008800";
-      
-      // Salvar o ID do pagamento para verificação posterior
-      sessionStorage.setItem('pixPaymentId', data.payment_id);
-      console.log('ID do pagamento PIX salvo:', data.payment_id);
-      
-      // Iniciar verificação automática do status a cada 30 segundos
-      const checkInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${data.payment_id}`);
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            console.log('Verificação automática de status:', statusData);
+        if (data.qrCodeBase64 && data.pixCode) {
+          // Exibir QR Code
+          const qrCodeContainer = document.getElementById('qr-code-container');
+          if (qrCodeContainer) {
+            // Limpar o conteúdo anterior do container
+            qrCodeContainer.innerHTML = '';
             
-            const statusElement = document.getElementById('payment-status-text');
-            if (statusElement) {
-              statusElement.textContent = `Status: ${statusData.status || 'Pendente'} ${statusData.status_detail ? `(${statusData.status_detail})` : ''}`;
-            }
-            
-            if (statusData.is_approved) {
-              clearInterval(checkInterval);
-              messageDiv.textContent = "Pagamento aprovado! Redirecionando...";
-              messageDiv.style.color = "#008800";
-              setTimeout(() => {
-                window.location.href = 'success.html';
-              }, 1500);
-            }
-          }
-        } catch (error) {
-          console.error('Erro na verificação automática de status:', error);
-        }
-      }, 30000); // Verificar a cada 30 segundos
-    } catch (fetchError) {
-      console.error('Erro ao fazer requisição para o servidor:', fetchError);
-      messageDiv.textContent = 'Erro de conexão com o servidor. Verifique sua internet e tente novamente.';
-      messageDiv.style.color = "#cc0000";
-    }
-  } catch (error) {
-    console.error('Erro geral ao processar pagamento PIX:', error);
-    messageDiv.textContent = 'Erro ao processar o pagamento. Tente novamente mais tarde.';
-    messageDiv.style.color = "#cc0000";
-  }
-}
+            // Criar elementos para exibir o QR Code
+            const qrImg = document.createElement('img');
+            qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
+            qrImg.alt =
