@@ -227,19 +227,40 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('Elemento payment-method não encontrado no DOM');
   }
   
-  // Configurar o botão PIX
+  // Configurar o botão PIX - método direto sem substituição do botão
+  console.log('Configurando botão PIX...');
   const pixButton = document.getElementById('pix-button');
+  
   if (pixButton) {
-    // Remover eventos anteriores para evitar duplicação
-    pixButton.removeEventListener('click', processPixPayment);
+    console.log('Botão PIX encontrado no DOM, adicionando evento de clique diretamente');
     
-    // Adicionar evento de clique diretamente ao botão
-    pixButton.addEventListener('click', function() {
+    // Remover qualquer evento anterior para evitar duplicação
+    pixButton.removeEventListener('click', processPixButtonClick);
+    
+    // Função para lidar com o clique do botão PIX
+    function processPixButtonClick(e) {
+      e.preventDefault(); // Prevenir comportamento padrão
       console.log('Botão PIX clicado, chamando processPixPayment');
+      
+      // Adicionar feedback visual
+      pixButton.textContent = 'Processando...';
+      pixButton.disabled = true;
+      
+      // Garantir que messageDiv esteja definido
+      const msgDiv = document.getElementById('message');
+      if (msgDiv) {
+        msgDiv.textContent = "Iniciando processamento do PIX...";
+        msgDiv.style.color = "#0066cc";
+      }
+      
+      // Chamar a função processPixPayment diretamente
       processPixPayment();
-    });
+    }
     
-    console.log('Evento de clique adicionado ao botão PIX');
+    // Adicionar o evento de clique
+    pixButton.addEventListener('click', processPixButtonClick);
+    
+    console.log('Evento de clique adicionado ao botão PIX com sucesso');
   } else {
     console.error('Botão PIX não encontrado no DOM');
   }
@@ -494,12 +515,34 @@ async function processPixPayment() {
   // Adicionar log para depuração
   console.log('Iniciando processamento de pagamento PIX');
   
+  // Reativar o botão PIX para permitir nova tentativa em caso de erro
+  const pixButton = document.getElementById('pix-button');
+  if (pixButton) {
+    // Configurar timeout para reativar o botão após 30 segundos (caso algo dê errado)
+    setTimeout(() => {
+      if (pixButton.disabled) {
+        pixButton.disabled = false;
+        pixButton.textContent = 'Gerar QR Code PIX';
+        console.log('Botão PIX reativado após timeout');
+      }
+    }, 30000);
+  }
+  
   // Verificar se o elemento messageDiv existe
-  if (!messageDiv) {
+  const msgDiv = document.getElementById('message');
+  if (!msgDiv) {
     console.error('Elemento messageDiv não encontrado no DOM');
     alert('Erro ao processar pagamento: Elemento de mensagem não encontrado.');
     return;
   }
+  
+  // Usar a referência local para messageDiv para garantir que estamos usando o elemento correto
+  msgDiv.textContent = "Processando pagamento PIX, aguarde...";
+  msgDiv.style.color = "#0066cc";
+  
+  // Adicionar mensagem de depuração no DOM
+  messageDiv.textContent = "Processando pagamento PIX, aguarde...";
+  messageDiv.style.color = "#0066cc";
   
   try {
     // Obter os valores dos campos
@@ -623,12 +666,18 @@ async function processPixPayment() {
     console.log('Dados enviados:', JSON.stringify(paymentData));
     
     try {
+      // Adicionar mensagem de depuração no DOM
+      messageDiv.textContent = "Conectando ao servidor, aguarde...";
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(paymentData)
+        body: JSON.stringify(paymentData),
+        // Adicionar opções para evitar problemas de cache
+        cache: 'no-cache',
+        credentials: 'same-origin'
       });
       
       console.log('Resposta recebida do servidor:', response.status, response.statusText);
