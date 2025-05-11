@@ -235,7 +235,10 @@ document.addEventListener('DOMContentLoaded', function() {
     pixButton.parentNode.replaceChild(newPixButton, pixButton);
     
     // Adicionar evento de clique ao novo botão
-    newPixButton.addEventListener('click', processPixPayment);
+    newPixButton.addEventListener('click', function() {
+      console.log('Botão PIX clicado, chamando processPixPayment');
+      processPixPayment();
+    });
     console.log('Evento de clique adicionado ao botão PIX');
   } else {
     console.error('Botão PIX não encontrado no DOM');
@@ -485,213 +488,99 @@ function setupCepButton() {
   }
 }
 
-// Função para buscar CEP via API ViaCEP
-async function buscarCep(cep) {
-  console.log('Função buscarCep chamada com:', cep);
-  
-  // Limpar o CEP, mantendo apenas números
-  cep = cep.replace(/\D/g, '');
-  console.log('CEP após limpeza:', cep);
-  
-  if (cep.length !== 8) {
-    console.log('CEP inválido, comprimento:', cep.length);
-    messageDiv.textContent = "CEP inválido. Digite um CEP com 8 dígitos.";
-    messageDiv.style.color = "#cc0000";
-    return false;
-  }
-  
-  // Mostrar mensagem de carregamento
-  messageDiv.textContent = "Buscando CEP...";
-  messageDiv.style.color = "#0066cc";
-  
-  try {
-    console.log(`Iniciando requisição para CEP: ${cep}`);
-    
-    // Usar URL com protocolo HTTPS para evitar problemas de segurança
-    const url = `https://viacep.com.br/ws/${cep}/json/`;
-    console.log('URL da requisição:', url);
-    
-    // Fazer requisição para a API ViaCEP com opções adicionais para evitar problemas de CORS
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      },
-      mode: 'cors'
-    });
-    
-    console.log('Resposta da API ViaCEP:', response.status, response.statusText);
-    
-    if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log('Dados recebidos da API:', data);
-    
-    // Verificar se a API retornou erro
-    if (data.erro) {
-      console.log('API retornou erro para o CEP');
-      messageDiv.textContent = "CEP não encontrado.";
-      messageDiv.style.color = "#cc0000";
-      return false;
-    }
-    
-    // Preencher os campos de endereço
-    const ruaElement = document.getElementById('rua');
-    const bairroElement = document.getElementById('bairro');
-    const cidadeElement = document.getElementById('cidade');
-    const estadoElement = document.getElementById('estado');
-    const numeroElement = document.getElementById('numero');
-    
-    console.log('Elementos do DOM encontrados:', {
-      rua: !!ruaElement,
-      bairro: !!bairroElement,
-      cidade: !!cidadeElement,
-      estado: !!estadoElement,
-      numero: !!numeroElement
-    });
-    
-    if (ruaElement) ruaElement.value = data.logradouro || '';
-    if (bairroElement) bairroElement.value = data.bairro || '';
-    if (cidadeElement) cidadeElement.value = data.localidade || '';
-    if (estadoElement) estadoElement.value = data.uf || '';
-    
-    // Remover o atributo readonly para permitir edição se necessário
-    if (ruaElement) ruaElement.removeAttribute('readonly');
-    if (bairroElement) bairroElement.removeAttribute('readonly');
-    if (cidadeElement) cidadeElement.removeAttribute('readonly');
-    if (estadoElement) estadoElement.removeAttribute('readonly');
-    
-    // Focar no campo número após preencher o endereço
-    if (numeroElement) numeroElement.focus();
-    
-    // Limpar mensagem de erro se houver
-    messageDiv.textContent = "CEP encontrado com sucesso!";
-    messageDiv.style.color = "#008800";
-    
-    // Após 3 segundos, limpar a mensagem de sucesso
-    setTimeout(() => {
-      messageDiv.textContent = "";
-    }, 3000);
-    
-    console.log('Busca de CEP concluída com sucesso');
-    return true;
-  } catch (error) {
-    console.error('Erro ao buscar CEP:', error);
-    messageDiv.textContent = "Erro ao buscar CEP. Tente novamente.";
-    messageDiv.style.color = "#cc0000";
-    return false;
-  }
-}
-
-// Função para criar os campos de cartão de crédito
-function createCreditCardFields() {
-  creditCardFields.innerHTML = `
-    <label for="card-number">Número do Cartão:</label>
-    <input type="text" id="card-number" name="card-number" placeholder="1234 5678 9012 3456" required>
-
-    <label for="expiry-date">Data de Validade:</label>
-    <input type="text" id="expiry-date" name="expiry-date" placeholder="MM/AA" required>
-
-    <label for="cvv">CVV:</label>
-    <input type="text" id="cvv" name="cvv" placeholder="123" required>
-
-    <label for="cardholder-name">Nome do Titular:</label>
-    <input type="text" id="cardholder-name" name="cardholder-name" placeholder="Nome como no cartão" required>
-
-    <label for="cpf">CPF:</label>
-    <input type="text" id="cpf" name="cpf" placeholder="123.456.789-00" required>
-  `;
-}
-
-// Função para remover os campos de cartão de crédito
-function removeCreditCardFields() {
-  creditCardFields.innerHTML = ""; // Remove todos os campos
-}
-
-// Função para atualizar a exibição dos campos
-function updatePaymentFields() {
-  const selectedMethod = paymentMethod.value;
-  const creditCardButton = document.getElementById("credit-card-button");
-  console.log('Método de pagamento selecionado:', selectedMethod);
-
-  if (selectedMethod === "credit-card") {
-    // Mostra campos de cartão e esconde campos PIX
-    creditCardFields.classList.remove("hidden");
-    pixFields.classList.add("hidden");
-    creditCardButton.classList.remove("hidden"); // Mostra o botão de cartão de crédito
-    createCreditCardFields(); // Cria os campos de cartão
-    
-    // Remove o atributo required dos campos PIX quando estão ocultos
-    document.getElementById('pix-name').removeAttribute('required');
-    document.getElementById('pix-cpf').removeAttribute('required');
-    document.getElementById('pix-email').removeAttribute('required');
-    document.getElementById('pix-telefone').removeAttribute('required');
-  } else if (selectedMethod === "pix") {
-    // Mostra campos PIX e esconde campos de cartão
-    creditCardFields.classList.add("hidden");
-    pixFields.classList.remove("hidden");
-    creditCardButton.classList.add("hidden"); // Esconde o botão de cartão de crédito
-    removeCreditCardFields(); // Remove os campos de cartão
-    
-    // Adiciona o atributo required aos campos PIX quando estão visíveis
-    document.getElementById('pix-name').setAttribute('required', '');
-    document.getElementById('pix-cpf').setAttribute('required', '');
-    document.getElementById('pix-email').setAttribute('required', '');
-    document.getElementById('pix-telefone').setAttribute('required', '');
-    
-    // Configurar o botão PIX
-    const pixButton = document.getElementById('pix-button');
-    if (pixButton) {
-      // Remover eventos anteriores para evitar duplicação
-      pixButton.replaceWith(pixButton.cloneNode(true));
-      const newPixButton = document.getElementById('pix-button');
-      
-      // Adicionar evento de clique
-      newPixButton.addEventListener('click', processPixPayment);
-      console.log('Evento de clique adicionado ao botão PIX');
-      
-      // Garantir que o botão PIX esteja visível
-      newPixButton.style.display = 'block';
-    } else {
-      console.error('Botão PIX não encontrado no DOM');
-    }
-  }
-}
-
-// Função para processar o pagamento PIX
+// Função para processar pagamento PIX
 async function processPixPayment() {
   console.log('Função processPixPayment chamada');
-  // Não é necessário event.preventDefault() aqui pois a função é chamada por um botão do tipo button
+  // Adicionar log para depuração
+  console.log('Iniciando processamento de pagamento PIX');
   
-  // Obter os valores dos campos
-  const nome = document.getElementById('pix-name').value;
-  const cpf = document.getElementById('pix-cpf').value;
-  const email = document.getElementById('pix-email').value;
-  const telefone = document.getElementById('pix-telefone').value;
-  const totalElement = document.getElementById('total-geral');
-  const total = totalElement ? parseFloat(totalElement.textContent) : 100.00;
-  
-  // Obter os dados de endereço
-  const cep = document.getElementById('cep').value;
-  const rua = document.getElementById('rua').value;
-  const numero = document.getElementById('numero').value;
-  const complemento = document.getElementById('complemento').value;
-  const bairro = document.getElementById('bairro').value;
-  const cidade = document.getElementById('cidade').value;
-  const estado = document.getElementById('estado').value;
-  
-  // Validar os campos
-  if (!nome || !cpf || !email || !telefone) {
-    messageDiv.textContent = "Por favor, preencha todos os campos.";
+  // Verificar se o elemento messageDiv existe
+  if (!messageDiv) {
+    console.error('Elemento messageDiv não encontrado no DOM');
+    alert('Erro ao processar pagamento: Elemento de mensagem não encontrado.');
     return;
   }
   
-  // Mostrar mensagem de carregamento
-  messageDiv.textContent = "Processando pagamento...";
-  
   try {
+    // Obter os valores dos campos
+    const pixNameElement = document.getElementById('pix-name');
+    const pixCpfElement = document.getElementById('pix-cpf');
+    const pixEmailElement = document.getElementById('pix-email');
+    const pixTelefoneElement = document.getElementById('pix-telefone');
+    
+    // Verificar se os elementos existem
+    if (!pixNameElement || !pixCpfElement || !pixEmailElement || !pixTelefoneElement) {
+      console.error('Elementos de formulário PIX não encontrados:', {
+        nome: !!pixNameElement,
+        cpf: !!pixCpfElement,
+        email: !!pixEmailElement,
+        telefone: !!pixTelefoneElement
+      });
+      messageDiv.textContent = "Erro ao processar pagamento: Elementos do formulário não encontrados.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    const nome = pixNameElement.value;
+    const cpf = pixCpfElement.value;
+    const email = pixEmailElement.value;
+    const telefone = pixTelefoneElement.value;
+    
+    // Obter o valor total
+    const totalElement = document.getElementById('total-geral');
+    let total = 100.00; // Valor padrão
+    
+    if (totalElement) {
+      // Remover caracteres não numéricos e converter para float
+      const totalText = totalElement.textContent.replace(/[^0-9.,]/g, '').replace(',', '.');
+      const parsedTotal = parseFloat(totalText);
+      if (!isNaN(parsedTotal)) {
+        total = parsedTotal;
+      } else {
+        console.warn('Não foi possível converter o valor total:', totalElement.textContent);
+      }
+    } else {
+      console.warn('Elemento total-geral não encontrado, usando valor padrão');
+    }
+    
+    console.log('Valores dos campos:', { nome, cpf, email, telefone, total });
+    
+    // Obter os dados de endereço
+    const cepElement = document.getElementById('cep');
+    const ruaElement = document.getElementById('rua');
+    const numeroElement = document.getElementById('numero');
+    const complementoElement = document.getElementById('complemento');
+    const bairroElement = document.getElementById('bairro');
+    const cidadeElement = document.getElementById('cidade');
+    const estadoElement = document.getElementById('estado');
+    
+    const cep = cepElement ? cepElement.value : '';
+    const rua = ruaElement ? ruaElement.value : '';
+    const numero = numeroElement ? numeroElement.value : '';
+    const complemento = complementoElement ? complementoElement.value : '';
+    const bairro = bairroElement ? bairroElement.value : '';
+    const cidade = cidadeElement ? cidadeElement.value : '';
+    const estado = estadoElement ? estadoElement.value : '';
+    
+    // Validar campos obrigatórios
+    if (!nome || !cpf || !email || !telefone) {
+      messageDiv.textContent = "Por favor, preencha todos os campos obrigatórios.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    // Validação básica de CPF (apenas verifica se tem 11 dígitos após remover caracteres especiais)
+    const cpfNumerico = cpf.replace(/[^0-9]/g, '');
+    if (cpfNumerico.length !== 11) {
+      messageDiv.textContent = "CPF inválido. Por favor, digite um CPF válido.";
+      messageDiv.style.color = "#cc0000";
+      return;
+    }
+    
+    // Mostrar mensagem de carregamento
+    messageDiv.textContent = "Processando pagamento PIX, aguarde...";
+    messageDiv.style.color = "#0066cc";
+    
     // Preparar os dados para enviar ao backend
     const paymentData = {
       transaction_amount: total,
@@ -703,7 +592,7 @@ async function processPixPayment() {
         last_name: nome.split(' ').slice(1).join(' ') || nome.split(' ')[0],
         identification: {
           type: "CPF",
-          number: cpf.replace(/[^0-9]/g, '')
+          number: cpfNumerico
         },
         phone: {
           area_code: telefone.substring(0, 2),
@@ -722,24 +611,51 @@ async function processPixPayment() {
     
     // Enviar os dados para o backend PHP
     const baseUrl = window.location.origin;
-    console.log('Enviando dados para:', `${baseUrl}/Pagamento/process-pix.php`);
+    const endpoint = `${baseUrl}/Pagamento/process-pix.php`;
+    console.log('Enviando dados para:', endpoint);
     console.log('Dados enviados:', JSON.stringify(paymentData));
-    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(paymentData)
-    });
     
-    const data = await response.json();
-    
-    if (response.ok) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
+      
+      console.log('Resposta recebida do servidor:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        let errorMessage = `Erro no servidor: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          console.error('Detalhes do erro:', errorData);
+          if (errorData.error) {
+            errorMessage += ` - ${errorData.error}`;
+          }
+          if (errorData.details) {
+            errorMessage += ` (${errorData.details})`;
+          }
+        } catch (jsonError) {
+          const errorText = await response.text();
+          console.error('Erro na resposta do servidor (texto):', errorText);
+        }
+        
+        messageDiv.textContent = errorMessage;
+        messageDiv.style.color = "#cc0000";
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Dados recebidos do servidor:', data);
+      
       // Exibir o QR Code e as instruções
       const pixContainer = document.getElementById('qr-code-container');
       if (!pixContainer) {
         console.error('Elemento qr-code-container não encontrado no DOM');
         messageDiv.textContent = "Erro ao exibir QR Code. Elemento container não encontrado.";
+        messageDiv.style.color = "#cc0000";
         return;
       }
       
@@ -747,404 +663,197 @@ async function processPixPayment() {
       if (!data.qrCodeBase64) {
         console.error('QR Code Base64 não encontrado na resposta:', data);
         messageDiv.textContent = "Erro ao gerar QR Code. Dados incompletos na resposta.";
+        messageDiv.style.color = "#cc0000";
         return;
       }
       
-      pixContainer.innerHTML = `
-        <h3>Pagamento PIX Gerado</h3>
-        <p>Escaneie o QR Code abaixo com o aplicativo do seu banco:</p>
-        <img src="data:image/png;base64,${data.qrCodeBase64}" alt="QR Code PIX" style="max-width: 250px;">
-        <p>Ou copie o código PIX:</p>
-        <textarea readonly style="width: 100%; height: 80px;">${data.pixCode}</textarea>
-        <button id="copy-pix-code" class="copy-button">Copiar Código</button>
-        <p>Valor: R$ ${data.transactionAmount.toFixed(2)}</p>
-        <p>ID do Pagamento: ${data.payment_id}</p>
-        <p>Status: ${data.status}</p>
-        <button id="check-payment-status" class="check-status-button">Verificar Status do Pagamento</button>
-      `;
+      // Limpar o container antes de adicionar o novo conteúdo
+      pixContainer.innerHTML = '';
+      
+      // Criar elementos individualmente para melhor controle
+      const title = document.createElement('h3');
+      title.textContent = 'Pagamento PIX Gerado';
+      pixContainer.appendChild(title);
+      
+      const scanText = document.createElement('p');
+      scanText.textContent = 'Escaneie o QR Code abaixo com o aplicativo do seu banco:';
+      pixContainer.appendChild(scanText);
+      
+      const qrImg = document.createElement('img');
+      qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
+      qrImg.alt = 'QR Code PIX';
+      qrImg.style.maxWidth = '250px';
+      pixContainer.appendChild(qrImg);
+      
+      const copyText = document.createElement('p');
+      copyText.textContent = 'Ou copie o código PIX:';
+      pixContainer.appendChild(copyText);
+      
+      const pixCodeArea = document.createElement('textarea');
+      pixCodeArea.readOnly = true;
+      pixCodeArea.style.width = '100%';
+      pixCodeArea.style.height = '80px';
+      pixCodeArea.value = data.pixCode;
+      pixCodeArea.id = 'pix-code-text';
+      pixContainer.appendChild(pixCodeArea);
+      
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copiar Código';
+      copyButton.className = 'copy-button';
+      copyButton.id = 'copy-pix-code';
+      pixContainer.appendChild(copyButton);
+      
+      const valueText = document.createElement('p');
+      valueText.textContent = `Valor: R$ ${data.transactionAmount.toFixed(2)}`;
+      pixContainer.appendChild(valueText);
+      
+      const idText = document.createElement('p');
+      idText.textContent = `ID do Pagamento: ${data.payment_id}`;
+      pixContainer.appendChild(idText);
+      
+      const statusText = document.createElement('p');
+      statusText.textContent = `Status: ${data.status}`;
+      statusText.id = 'payment-status-text';
+      pixContainer.appendChild(statusText);
+      
+      const checkButton = document.createElement('button');
+      checkButton.textContent = 'Verificar Status do Pagamento';
+      checkButton.className = 'check-status-button';
+      checkButton.id = 'check-payment-status';
+      pixContainer.appendChild(checkButton);
       
       // Adicionar evento para copiar o código PIX
-      document.getElementById('copy-pix-code').addEventListener('click', function() {
-        const textarea = document.querySelector('textarea');
-        textarea.select();
-        document.execCommand('copy');
-        this.textContent = 'Código Copiado!';
-        setTimeout(() => {
-          this.textContent = 'Copiar Código';
-        }, 2000);
+      copyButton.addEventListener('click', function() {
+        const pixCodeText = document.getElementById('pix-code-text');
+        if (pixCodeText) {
+          pixCodeText.select();
+          try {
+            // Tentar usar a API moderna de clipboard
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(pixCodeText.value)
+                .then(() => {
+                  this.textContent = 'Código Copiado!';
+                  setTimeout(() => {
+                    this.textContent = 'Copiar Código';
+                  }, 2000);
+                })
+                .catch(err => {
+                  console.error('Erro ao copiar texto com clipboard API:', err);
+                  // Fallback para o método antigo
+                  document.execCommand('copy');
+                  this.textContent = 'Código Copiado!';
+                  setTimeout(() => {
+                    this.textContent = 'Copiar Código';
+                  }, 2000);
+                });
+            } else {
+              // Fallback para navegadores que não suportam clipboard API
+              document.execCommand('copy');
+              this.textContent = 'Código Copiado!';
+              setTimeout(() => {
+                this.textContent = 'Copiar Código';
+              }, 2000);
+            }
+          } catch (err) {
+            console.error('Erro ao copiar texto:', err);
+            alert('Não foi possível copiar o código automaticamente. Por favor, selecione o texto e copie manualmente.');
+          }
+        }
       });
       
       // Adicionar evento para verificar o status do pagamento
-      document.getElementById('check-payment-status').addEventListener('click', async function() {
+      checkButton.addEventListener('click', async function() {
         this.textContent = 'Verificando...';
+        this.disabled = true;
+        
         try {
-          const statusResponse = await fetch(`payment-status.php?action=payment-status&id=${data.payment_id}`);
+          const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${data.payment_id}`);
+          
+          if (!statusResponse.ok) {
+            throw new Error(`Erro ao verificar status: ${statusResponse.status} ${statusResponse.statusText}`);
+          }
+          
           const statusData = await statusResponse.json();
+          console.log('Status do pagamento:', statusData);
+          
+          const statusElement = document.getElementById('payment-status-text');
+          if (statusElement) {
+            statusElement.textContent = `Status: ${statusData.status || 'Pendente'} ${statusData.status_detail ? `(${statusData.status_detail})` : ''}`;
+          }
           
           if (statusData.is_approved) {
             // Redirecionar para a página de sucesso
-            window.location.href = 'success.html';
+            messageDiv.textContent = "Pagamento aprovado! Redirecionando...";
+            messageDiv.style.color = "#008800";
+            setTimeout(() => {
+              window.location.href = 'success.html';
+            }, 1500);
           } else {
-            // Atualizar o status na página
-            const statusElement = document.querySelector('p:nth-last-child(2)');
-            if (statusElement) {
-              statusElement.textContent = `Status: ${statusData.status} (${statusData.status_detail})`;
-            }
             this.textContent = 'Verificar Novamente';
+            this.disabled = false;
           }
         } catch (error) {
           console.error('Erro ao verificar status:', error);
           this.textContent = 'Erro ao Verificar';
           setTimeout(() => {
             this.textContent = 'Verificar Status do Pagamento';
+            this.disabled = false;
           }, 2000);
         }
       });
       
-      // Limpar a mensagem
-      messageDiv.textContent = "";
+      // Ocultar o botão PIX original para evitar múltiplos pagamentos
+      const pixButton = document.getElementById('pix-button');
+      if (pixButton) {
+        pixButton.style.display = 'none';
+      }
       
-      // Enviar email com os dados do pagamento e a imagem
-      sendEmailWithPaymentInfo(nome, email, total);
-    } else {
-      // Exibir mensagem de erro
-      messageDiv.textContent = `Erro: ${data.error || 'Falha ao processar o pagamento'}`;
-    }
-  } catch (error) {
-    console.error('Erro ao processar pagamento:', error);
-    messageDiv.textContent = "Erro ao processar o pagamento. Por favor, tente novamente.";
-  }
-}
-
-// Função para enviar email com os dados do pagamento e a imagem
-async function sendEmailWithPaymentInfo(nome, email, valor) {
-  try {
-    // Obter a imagem do sessionStorage
-    let imageData = sessionStorage.getItem('screenCapture');
-    
-    // Verificar se a imagem existe e adicionar o prefixo data:image se necessário
-    if (imageData) {
-      console.log('Imagem encontrada para envio por email, verificando formato...');
-      if (!imageData.startsWith('data:image')) {
-        console.log('Adicionando prefixo data:image/png;base64 à imagem para email');
-        imageData = 'data:image/png;base64,' + imageData;
-      } else {
-        console.log('Imagem para email já possui o prefixo data:image');
-      }
-    } else {
-      console.log('Nenhuma imagem encontrada no sessionStorage para envio por email');
-    }
-    
-    // Obter os dados de endereço
-    const cep = document.getElementById('cep').value;
-    const rua = document.getElementById('rua').value;
-    const numero = document.getElementById('numero').value;
-    const complemento = document.getElementById('complemento').value;
-    const bairro = document.getElementById('bairro').value;
-    const cidade = document.getElementById('cidade').value;
-    const estado = document.getElementById('estado').value;
-    
-    // Preparar os dados para enviar ao backend
-    const emailData = {
-      nome: nome,
-      email: email,
-      valor: valor.toFixed(2),
-      imageData: imageData,
-      endereco: {
-        cep: cep,
-        rua: rua,
-        numero: numero,
-        complemento: complemento,
-        bairro: bairro,
-        cidade: cidade,
-        estado: estado
-      }
-    };
-    
-    // Enviar os dados para o backend PHP
-    const baseUrl = window.location.origin;
-    const response = await fetch(`${baseUrl}/Pagamento/send-email.php`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      console.log('Email enviado com sucesso:', data.message);
-    } else {
-      console.error('Erro ao enviar email:', data.error);
-    }
-  } catch (error) {
-    console.error('Erro ao enviar email:', error);
-  }
-}
-
-// Inicialização do documento quando estiver completamente carregado
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM completamente carregado e analisado');
-  
-  // Carregar a imagem do usuário
-  loadUserImage();
-  
-  // Carregar informações das miniaturas
-  loadMiniaturasAdicionadas();
-  
-  // Inicializar o Mercado Pago
-  initMercadoPago();
-  
-  // Configurar o botão de buscar CEP
-  setupCepButton();
-  
-  // Inicializar a exibição dos campos com base no método de pagamento selecionado
-  updatePaymentFields();
-  
-  // Adicionar evento para atualizar os campos quando o método de pagamento for alterado
-  paymentMethod.addEventListener('change', updatePaymentFields);
-  
-  // Adicionar evento para processar o pagamento PIX quando o formulário for enviado
-  paymentForm.addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevenir o envio do formulário em todos os casos
-    const selectedMethod = paymentMethod.value;
-    
-    if (selectedMethod === "pix") {
-      processPixPayment();
-    } else {
-      // Para cartão de crédito, implementar a lógica de processamento de cartão de crédito
-      messageDiv.textContent = "Processamento de cartão de crédito não implementado nesta versão.";
-    }
-  });
-  
-  // Adicionar evento ao botão PIX se existir
-  const pixButton = document.getElementById('pix-button');
-  if (pixButton) {
-    pixButton.addEventListener('click', processPixPayment);
-    console.log('Evento adicionado ao botão PIX');
-  }
-});
-
-
-// Função para buscar endereço pelo CEP usando a API ViaCEP
-async function buscarCep(cep) {
-  console.log('Função buscarCep chamada com:', cep);
-  
-  // Limpar o CEP, mantendo apenas números
-  cep = cep.replace(/\D/g, '');
-  console.log('CEP após limpeza:', cep);
-  
-  if (cep.length !== 8) {
-    console.log('CEP inválido, comprimento:', cep.length);
-    messageDiv.textContent = "CEP inválido. Digite um CEP com 8 dígitos.";
-    messageDiv.style.color = "#cc0000";
-    return false;
-  }
-  
-  // Mostrar mensagem de carregamento
-  messageDiv.textContent = "Buscando CEP...";
-  messageDiv.style.color = "#0066cc";
-  
-  try {
-    console.log(`Iniciando requisição para CEP: ${cep}`);
-    
-    // Usar URL com protocolo HTTPS para evitar problemas de segurança
-    const url = `https://viacep.com.br/ws/${cep}/json/`;
-    console.log('URL da requisição:', url);
-    
-    // Fazer requisição para a API ViaCEP com opções adicionais para evitar problemas de CORS
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      },
-      mode: 'cors'
-    });
-    
-    console.log('Resposta da API ViaCEP:', response.status, response.statusText);
-    
-    if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log('Dados recebidos da API:', data);
-    
-    // Verificar se a API retornou erro
-    if (data.erro) {
-      console.log('API retornou erro para o CEP');
-      messageDiv.textContent = "CEP não encontrado.";
-      messageDiv.style.color = "#cc0000";
-      return false;
-    }
-    
-    // Preencher os campos de endereço
-    const ruaElement = document.getElementById('rua');
-    const bairroElement = document.getElementById('bairro');
-    const cidadeElement = document.getElementById('cidade');
-    const estadoElement = document.getElementById('estado');
-    const numeroElement = document.getElementById('numero');
-    
-    console.log('Elementos do DOM encontrados:', {
-      rua: !!ruaElement,
-      bairro: !!bairroElement,
-      cidade: !!cidadeElement,
-      estado: !!estadoElement,
-      numero: !!numeroElement
-    });
-    
-    if (ruaElement) ruaElement.value = data.logradouro || '';
-    if (bairroElement) bairroElement.value = data.bairro || '';
-    if (cidadeElement) cidadeElement.value = data.localidade || '';
-    if (estadoElement) estadoElement.value = data.uf || '';
-    
-    // Remover o atributo readonly para permitir edição se necessário
-    if (ruaElement) ruaElement.removeAttribute('readonly');
-    if (bairroElement) bairroElement.removeAttribute('readonly');
-    if (cidadeElement) cidadeElement.removeAttribute('readonly');
-    if (estadoElement) estadoElement.removeAttribute('readonly');
-    
-    // Focar no campo número após preencher o endereço
-    if (numeroElement) numeroElement.focus();
-    
-    // Limpar mensagem de erro se houver
-    messageDiv.textContent = "CEP encontrado com sucesso!";
-    messageDiv.style.color = "#008800";
-    
-    // Após 3 segundos, limpar a mensagem de sucesso
-    setTimeout(() => {
-      messageDiv.textContent = "";
-    }, 3000);
-    
-    console.log('Busca de CEP concluída com sucesso');
-    return true;
-  } catch (error) {
-    console.error('Erro ao buscar CEP:', error);
-    messageDiv.textContent = "Erro ao buscar CEP. Tente novamente.";
-    messageDiv.style.color = "#cc0000";
-    return false;
-  }
-}
-
-// Função para configurar o botão de buscar CEP
-function setupCepButton() {
-  console.log('Configurando botão de buscar CEP...');
-  
-  // Obter o elemento de input do CEP
-  const cepInput = document.getElementById('cep');
-  
-  if (!cepInput) {
-    console.error('Elemento de input CEP não encontrado no DOM');
-    return;
-  }
-  
-  // Verificar se o botão já existe
-  let buscarCepButton = document.getElementById('buscar-cep');
-  
-  if (!buscarCepButton) {
-    console.log('Botão de buscar CEP não encontrado, criando dinamicamente...');
-    
-    // Verificar se existe o container cep-input-group no HTML
-    const cepInputGroup = document.querySelector('.cep-input-group');
-    
-    if (cepInputGroup) {
-      // Criar um botão e adicioná-lo ao container existente
-      buscarCepButton = document.createElement('button');
-      buscarCepButton.type = 'button';
-      buscarCepButton.id = 'buscar-cep';
-      buscarCepButton.className = 'buscar-cep-button';
-      buscarCepButton.textContent = 'Buscar';
+      // Limpar a mensagem de carregamento
+      messageDiv.textContent = "QR Code PIX gerado com sucesso!";
+      messageDiv.style.color = "#008800";
       
-      // Inserir o botão no container
-      cepInputGroup.appendChild(buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo existente');
-    } else {
-      // Se não encontrar o container, criar um novo container
-      const cepContainer = cepInput.parentElement;
+      // Salvar o ID do pagamento para verificação posterior
+      sessionStorage.setItem('pixPaymentId', data.payment_id);
+      console.log('ID do pagamento PIX salvo:', data.payment_id);
       
-      if (cepContainer) {
-        // Criar um novo container para agrupar o input e o botão
-        const newCepInputGroup = document.createElement('div');
-        newCepInputGroup.className = 'cep-input-group';
-        newCepInputGroup.style.display = 'flex';
-        newCepInputGroup.style.gap = '10px';
-        
-        // Criar o botão
-        buscarCepButton = document.createElement('button');
-        buscarCepButton.type = 'button';
-        buscarCepButton.id = 'buscar-cep';
-        buscarCepButton.className = 'buscar-cep-button';
-        buscarCepButton.textContent = 'Buscar';
-        buscarCepButton.style.padding = '8px 15px';
-        buscarCepButton.style.cursor = 'pointer';
-        
-        // Substituir o input original pelo novo container
-        cepContainer.insertBefore(newCepInputGroup, cepInput);
-        cepContainer.removeChild(cepInput);
-        
-        // Adicionar o input e o botão ao novo container
-        newCepInputGroup.appendChild(cepInput);
-        newCepInputGroup.appendChild(buscarCepButton);
-        
-        console.log('Criado novo container cep-input-group com botão de buscar CEP');
-      } else {
-        // Fallback: inserir o botão após o input se não encontrar nenhum container
-        buscarCepButton = document.createElement('button');
-        buscarCepButton.type = 'button';
-        buscarCepButton.id = 'buscar-cep';
-        buscarCepButton.className = 'buscar-cep-button';
-        buscarCepButton.textContent = 'Buscar';
-        buscarCepButton.style.marginLeft = '10px';
-        buscarCepButton.style.padding = '8px 15px';
-        buscarCepButton.style.cursor = 'pointer';
-        
-        // Inserir o botão após o input de CEP
-        cepInput.insertAdjacentElement('afterend', buscarCepButton);
-        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
-      }
-    }
-  } else {
-    console.log('Botão de buscar CEP já existe no DOM');
-  }
-  
-  // Adicionar evento ao botão de buscar CEP (original ou criado dinamicamente)
-  buscarCepButton = document.getElementById('buscar-cep'); // Obter novamente para garantir
-  if (buscarCepButton) {
-    // Remover eventos anteriores para evitar duplicação
-    const newButton = buscarCepButton.cloneNode(true);
-    buscarCepButton.parentNode.replaceChild(newButton, buscarCepButton);
-    buscarCepButton = newButton;
-    
-    buscarCepButton.addEventListener('click', function() {
-      const cep = cepInput.value;
-      if (cep) {
-        buscarCep(cep);
-      } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
-        messageDiv.style.color = "#cc0000";
-      }
-    });
-    
-    // Adicionar evento de tecla Enter no campo de CEP
-    cepInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault(); // Evitar envio do formulário
-        const cep = cepInput.value;
-        if (cep) {
-          buscarCep(cep);
-        } else {
-          messageDiv.textContent = "Por favor, digite um CEP válido.";
-          messageDiv.style.color = "#cc0000";
+      // Iniciar verificação automática do status a cada 30 segundos
+      const checkInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${data.payment_id}`);
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            console.log('Verificação automática de status:', statusData);
+            
+            const statusElement = document.getElementById('payment-status-text');
+            if (statusElement) {
+              statusElement.textContent = `Status: ${statusData.status || 'Pendente'} ${statusData.status_detail ? `(${statusData.status_detail})` : ''}`;
+            }
+            
+            if (statusData.is_approved) {
+              clearInterval(checkInterval);
+              messageDiv.textContent = "Pagamento aprovado! Redirecionando...";
+              messageDiv.style.color = "#008800";
+              setTimeout(() => {
+                window.location.href = 'success.html';
+              }, 1500);
+            }
+          }
+        } catch (error) {
+          console.error('Erro na verificação automática de status:', error);
         }
-      }
-    });
-    
-    console.log('Eventos adicionados ao botão de buscar CEP e campo de CEP');
-  } else {
-    console.error('Botão de buscar CEP não encontrado após tentativa de criação');
+      }, 30000); // Verificar a cada 30 segundos
+    } catch (fetchError) {
+      console.error('Erro ao fazer requisição para o servidor:', fetchError);
+      messageDiv.textContent = 'Erro de conexão com o servidor. Verifique sua internet e tente novamente.';
+      messageDiv.style.color = "#cc0000";
+    }
+  } catch (error) {
+    console.error('Erro geral ao processar pagamento PIX:', error);
+    messageDiv.textContent = 'Erro ao processar o pagamento. Tente novamente mais tarde.';
+    messageDiv.style.color = "#cc0000";
   }
 }
-
-// Inicializar a exibição dos campos com base no método de pagamento selecionado
-updatePaymentFields();
+      sendEmailWithPaymentInfo(nome, email, total);
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      messageDiv
