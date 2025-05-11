@@ -162,6 +162,46 @@ function loadMiniaturasAdicionadas() {
 // Inicializa o Mercado Pago com a chave pública obtida do backend
 let mp;
 
+// Função para atualizar os campos de pagamento com base no método selecionado
+function updatePaymentFields() {
+  console.log('Atualizando campos de pagamento...');
+  
+  if (!paymentMethod) {
+    console.error('Elemento payment-method não encontrado');
+    return;
+  }
+  
+  const selectedMethod = paymentMethod.value;
+  console.log('Método de pagamento selecionado:', selectedMethod);
+  
+  // Ocultar todos os campos e botões primeiro
+  if (creditCardFields) creditCardFields.classList.add('hidden');
+  if (pixFields) pixFields.classList.add('hidden');
+  
+  const creditCardButton = document.getElementById('credit-card-button');
+  if (creditCardButton) creditCardButton.classList.add('hidden');
+  
+  const pixButton = document.getElementById('pix-button');
+  if (pixButton) pixButton.style.display = 'none';
+  
+  // Mostrar os campos e botões relevantes com base no método selecionado
+  if (selectedMethod === 'credit-card') {
+    console.log('Exibindo campos de cartão de crédito');
+    if (creditCardFields) {
+      creditCardFields.classList.remove('hidden');
+      // Criar os campos de cartão de crédito se ainda não existirem
+      if (creditCardFields.children.length === 0) {
+        createCreditCardFields();
+      }
+    }
+    if (creditCardButton) creditCardButton.classList.remove('hidden');
+  } else if (selectedMethod === 'pix') {
+    console.log('Exibindo campos de PIX');
+    if (pixFields) pixFields.classList.remove('hidden');
+    if (pixButton) pixButton.style.display = 'block';
+  }
+}
+
 // Inicializar a página quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
   console.log('DOM carregado, inicializando página de pagamento...');
@@ -190,7 +230,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Configurar o botão PIX
   const pixButton = document.getElementById('pix-button');
   if (pixButton) {
-    pixButton.addEventListener('click', processPixPayment);
+    // Remover eventos anteriores para evitar duplicação
+    const newPixButton = pixButton.cloneNode(true);
+    pixButton.parentNode.replaceChild(newPixButton, pixButton);
+    
+    // Adicionar evento de clique ao novo botão
+    newPixButton.addEventListener('click', processPixPayment);
     console.log('Evento de clique adicionado ao botão PIX');
   } else {
     console.error('Botão PIX não encontrado no DOM');
@@ -606,6 +651,9 @@ function updatePaymentFields() {
       // Adicionar evento de clique
       newPixButton.addEventListener('click', processPixPayment);
       console.log('Evento de clique adicionado ao botão PIX');
+      
+      // Garantir que o botão PIX esteja visível
+      newPixButton.style.display = 'block';
     } else {
       console.error('Botão PIX não encontrado no DOM');
     }
