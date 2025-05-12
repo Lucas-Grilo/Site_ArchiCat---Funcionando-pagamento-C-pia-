@@ -498,19 +498,61 @@ async function processPixPayment() {
     
     // Fazer requisição para o backend
     const baseUrl = getServerBaseUrl();
+    
+    // Gerar um UUID para o cabeçalho X-Idempotency-Key
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : 
+      ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    
+    console.log('X-Idempotency-Key gerado:', idempotencyKey);
+    
     const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey
       },
       body: JSON.stringify(paymentData)
     });
+    
+    // Registrar o cabeçalho enviado para depuração
+    console.log('Requisição enviada com X-Idempotency-Key:', idempotencyKey);
     
     console.log('Resposta do servidor:', response.status, response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Erro na resposta:', errorText);
+      
+      // Tentar analisar o erro como JSON para exibir mensagens mais específicas
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('Detalhes do erro:', errorData);
+        
+        // Verificar se é um erro relacionado ao X-Idempotency-Key
+        if (errorData.response && errorData.response.cause) {
+          const causes = errorData.response.cause;
+          for (const cause of causes) {
+            if (cause.description && cause.description.includes('X-Idempotency-Key')) {
+              messageDiv.textContent = "Erro de validação: Chave de idempotência inválida. Tente novamente.";
+              messageDiv.style.color = "#cc0000";
+              return; // Interrompe a execução para não lançar o erro genérico
+            }
+          }
+        }
+        
+        // Exibir mensagem de erro mais específica se disponível
+        if (errorData.error || errorData.message) {
+          messageDiv.textContent = `Erro ao processar pagamento: ${errorData.error || errorData.message}`;
+          messageDiv.style.color = "#cc0000";
+          return; // Interrompe a execução para não lançar o erro genérico
+        }
+      } catch (jsonError) {
+        // Se não conseguir analisar como JSON, continua com o tratamento padrão
+        console.error('Erro ao analisar resposta de erro como JSON:', jsonError);
+      }
+      
       throw new Error(`Erro no servidor: ${response.status}`);
     }
     
@@ -1135,19 +1177,61 @@ async function processPixPayment() {
     
     // Fazer requisição para o backend
     const baseUrl = getServerBaseUrl();
+    
+    // Gerar um UUID para o cabeçalho X-Idempotency-Key
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : 
+      ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    
+    console.log('X-Idempotency-Key gerado:', idempotencyKey);
+    
     const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey
       },
       body: JSON.stringify(paymentData)
     });
+    
+    // Registrar o cabeçalho enviado para depuração
+    console.log('Requisição enviada com X-Idempotency-Key:', idempotencyKey);
     
     console.log('Resposta do servidor:', response.status, response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Erro na resposta:', errorText);
+      
+      // Tentar analisar o erro como JSON para exibir mensagens mais específicas
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('Detalhes do erro:', errorData);
+        
+        // Verificar se é um erro relacionado ao X-Idempotency-Key
+        if (errorData.response && errorData.response.cause) {
+          const causes = errorData.response.cause;
+          for (const cause of causes) {
+            if (cause.description && cause.description.includes('X-Idempotency-Key')) {
+              messageDiv.textContent = "Erro de validação: Chave de idempotência inválida. Tente novamente.";
+              messageDiv.style.color = "#cc0000";
+              return; // Interrompe a execução para não lançar o erro genérico
+            }
+          }
+        }
+        
+        // Exibir mensagem de erro mais específica se disponível
+        if (errorData.error || errorData.message) {
+          messageDiv.textContent = `Erro ao processar pagamento: ${errorData.error || errorData.message}`;
+          messageDiv.style.color = "#cc0000";
+          return; // Interrompe a execução para não lançar o erro genérico
+        }
+      } catch (jsonError) {
+        // Se não conseguir analisar como JSON, continua com o tratamento padrão
+        console.error('Erro ao analisar resposta de erro como JSON:', jsonError);
+      }
+      
       throw new Error(`Erro no servidor: ${response.status}`);
     }
     

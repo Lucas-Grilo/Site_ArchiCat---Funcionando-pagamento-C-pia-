@@ -64,6 +64,20 @@ $payment_data = [
     ]
 ];
 
+// Gerar um UUID para o cabeçalho X-Idempotency-Key
+function generateUUID() {
+    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000,
+        mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+}
+
+// Gerar um UUID único para esta transação
+$idempotency_key = generateUUID();
+
 // Inicializar cURL para fazer a requisição à API do Mercado Pago
 $ch = curl_init();
 
@@ -73,8 +87,12 @@ curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payment_data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Authorization: Bearer ' . $access_token,
-    'Content-Type: application/json'
+    'Content-Type: application/json',
+    'X-Idempotency-Key: ' . $idempotency_key
 ]);
+
+// Registrar o UUID gerado para depuração
+error_log('X-Idempotency-Key gerado: ' . $idempotency_key);
 
 // Executar a requisição
 $response = curl_exec($ch);
