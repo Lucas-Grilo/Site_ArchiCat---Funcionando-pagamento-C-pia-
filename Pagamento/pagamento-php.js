@@ -719,7 +719,7 @@ function startPaymentStatusCheck(paymentId) {
         }
       }
       
-      // Continuar verificando se não atingiu o número máximo de tentativas
+      // Continue checking if max attempts not reached
       if (attempts < maxAttempts) {
         setTimeout(checkPaymentStatus, checkInterval);
       } else {
@@ -872,8 +872,84 @@ response.json().then(statusData => {
   
   // Iniciar a verificação periódica
   runPeriodicCheck();
-  // Start periodic check
-  runPeriodicCheck();
+};
+
+// Função para verificar o status do pagamento
+async function checkPaymentStatus() {
+  try {
+    // Obter o ID do pagamento do sessionStorage
+    const paymentId = sessionStorage.getItem('pixPaymentId');
+    if (!paymentId) {
+      console.error('ID do pagamento não encontrado no sessionStorage');
+      return true; // Interromper a verificação
+    }
+    
+    // Elemento para exibir mensagens de status
+    const statusMessageElement = document.getElementById('payment-status-message');
+    
+    console.log(`Verificando status do pagamento: ${paymentId}`);
+    
+    // Fazer requisição para o backend
+    const baseUrl = getServerBaseUrl();
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Erro ao verificar status: ${response.status}`);
+    }
+    
+    const statusData = await response.json();
+    console.log('Status do pagamento:', statusData);
+    
+    // Atualizar a mensagem de status
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
+    }
+    
+    // Verificar se o pagamento foi aprovado
+    if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+      console.log('Pagamento aprovado!');
+      
+      if (statusMessageElement) {
+        statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
+        statusMessageElement.style.color = '#008800';
+      }
+      
+      // Redirecionar para a página de sucesso após 3 segundos
+      setTimeout(() => {
+        const baseUrl = window.location.origin;
+        window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+      }, 3000);
+      
+      return true; // Interromper a verificação
+    }
+    
+    // Verificar se o pagamento foi rejeitado ou cancelado
+    if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
+        statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
+      console.log('Pagamento rejeitado ou cancelado');
+      
+      if (statusMessageElement) {
+        statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
+        statusMessageElement.style.color = '#cc0000';
+      }
+      
+      // Reativar o botão PIX
+      const pixButton = document.getElementById('pix-button');
+      if (pixButton) {
+        pixButton.textContent = 'Tentar novamente';
+        pixButton.disabled = false;
+        pixButton.style.display = 'block';
+      }
+      
+      return true; // Interromper a verificação
+    }
+    
+    return false; // Continuar verificando
+  } catch (error) {
+    console.error('Erro ao verificar status do pagamento:', error);
+    return false; // Continuar verificando
+  }
+}
 // Function to check payment status periodically
 function startPaymentStatusCheck(paymentId) {
   console.log('Starting periodic payment status check:', paymentId);
@@ -883,432 +959,19 @@ function startPaymentStatusCheck(paymentId) {
   const maxAttempts = 60; // Check for up to 5 minutes (60 * 5s = 300s = 5min)
   let attempts = 0;
   
-  // Function to check payment status
-  async function checkPaymentStatus() {
-    try {
-      attempts++;
-      console.log(`Checking payment status (attempt ${attempts}/${maxAttempts})`);
-      
-      // Make request to backend to check status
-      const baseUrl = getServerBaseUrl();
-      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Payment status:', data);
-        
-        // Update status message
-        const statusMessage = document.getElementById('payment-status-message');
-        if (statusMessage) {
-          statusMessage.textContent = `Current status: ${data.status || 'Checking...'}`;
-        }
-        
-        // If payment was approved, redirect to success page
-        if (data.status === 'approved' || data.status === 'Aprovado') {
-          console.log('Payment approved! Redirecting to success page...');
-          window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
-          return; // Stop checks
-        }
-      }
-      
-      // Continue checking if max attempts not reached
-      if (attempts < maxAttempts) {
-        setTimeout(checkPaymentStatus, checkInterval);
-      } else {
-        console.log('Maximum attempts reached. Stopping automatic check.');
-        const statusMessage = document.getElementById('payment-status-message');
-        if (statusMessage) {
-          statusMessage.innerHTML = 'Automatic check ended. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Check manually</a>';
-        }
-      }
-    } catch (error) {
-      console.error('Error checking payment status:', error);
-      // Continue checking even with error
-      if (attempts < maxAttempts) {
-        setTimeout(checkPaymentStatus, checkInterval);
-      }
+  // Salvar o ID do pagamento no sessionStorage para uso posterior
+  sessionStorage.setItem('pixPaymentId', paymentId);
+  
+  // Função para executar a verificação periodicamente
+  async function runPeriodicCheck() {
+    const shouldStop = await checkPaymentStatus();
+    
+    if (!shouldStop && attempts < maxAttempts) {
+      // Agendar próxima verificação
+      setTimeout(runPeriodicCheck, checkInterval);
     }
   }
   
-  // Start initial check
-  checkPaymentStatus();
-}
-
-// Função para configurar o botão de buscar CEP
-function setupCepButton() {
-  console.log('Configurando botão de buscar CEP...');
-  
-  // Obter o elemento de input do CEP
-  const cepInput = document.getElementById('cep');
-  
-  if (!cepInput) {
-    console.error('Elemento de input CEP não encontrado no DOM');
-    return;
-  }
-  
-  // Verificar se o botão já existe
-  let buscarCepButton = document.getElementById('buscar-cep');
-  
-  if (!buscarCepButton) {
-    console.log('Botão de buscar CEP não encontrado, criando dinamicamente...');
-    
-    // Verificar se existe o container cep-input-group no HTML
-    const cepInputGroup = document.querySelector('.cep-input-group');
-    
-    if (cepInputGroup) {
-      // Criar um botão e adicioná-lo ao container existente
-      buscarCepButton = document.createElement('button');
-      buscarCepButton.type = 'button';
-      buscarCepButton.id = 'buscar-cep';
-      buscarCepButton.className = 'buscar-cep-button';
-      buscarCepButton.textContent = 'Buscar';
-      
-      // Inserir o botão no container
-      cepInputGroup.appendChild(buscarCepButton);
-      console.log('Botão de buscar CEP criado dinamicamente dentro do grupo existente');
-    } else {
-      // Se não encontrar o container, criar um novo container
-      const cepContainer = cepInput.parentElement;
-      
-      if (cepContainer) {
-        // Criar um novo container para agrupar o input e o botão
-        const newCepInputGroup = document.createElement('div');
-        newCepInputGroup.className = 'cep-input-group';
-        newCepInputGroup.style.display = 'flex';
-        newCepInputGroup.style.gap = '10px';
-        
-        // Criar o botão
-        buscarCepButton = document.createElement('button');
-        buscarCepButton.type = 'button';
-        buscarCepButton.id = 'buscar-cep';
-        buscarCepButton.className = 'buscar-cep-button';
-        buscarCepButton.textContent = 'Buscar';
-        buscarCepButton.style.padding = '8px 15px';
-        buscarCepButton.style.cursor = 'pointer';
-        
-        // Substituir o input original pelo novo container
-        cepContainer.insertBefore(newCepInputGroup, cepInput);
-        cepContainer.removeChild(cepInput);
-        
-        // Adicionar o input e o botão ao novo container
-        newCepInputGroup.appendChild(cepInput);
-        newCepInputGroup.appendChild(buscarCepButton);
-        
-        console.log('Criado novo container cep-input-group com botão de buscar CEP');
-      } else {
-        // Fallback: inserir o botão após o input se não encontrar nenhum container
-        buscarCepButton = document.createElement('button');
-        buscarCepButton.type = 'button';
-        buscarCepButton.id = 'buscar-cep';
-        buscarCepButton.className = 'buscar-cep-button';
-        buscarCepButton.textContent = 'Buscar';
-        buscarCepButton.style.marginLeft = '10px';
-        buscarCepButton.style.padding = '8px 15px';
-        buscarCepButton.style.cursor = 'pointer';
-        
-        // Inserir o botão após o input de CEP
-        cepInput.insertAdjacentElement('afterend', buscarCepButton);
-        console.log('Botão de buscar CEP criado dinamicamente (fallback)');
-      }
-    }
-  } else {
-    console.log('Botão de buscar CEP já existe no DOM');
-  }
-  
-  // Adicionar evento ao botão de buscar CEP (original ou criado dinamicamente)
-  buscarCepButton = document.getElementById('buscar-cep'); // Obter novamente para garantir
-  if (buscarCepButton) {
-    // Remover eventos anteriores para evitar duplicação
-    const newButton = buscarCepButton.cloneNode(true);
-    buscarCepButton.parentNode.replaceChild(newButton, buscarCepButton);
-    buscarCepButton = newButton;
-    
-    buscarCepButton.addEventListener('click', function() {
-      const cep = cepInput.value;
-      if (cep) {
-        buscarCep(cep);
-      } else {
-        messageDiv.textContent = "Por favor, digite um CEP válido.";
-        messageDiv.style.color = "#cc0000";
-      }
-    });
-    
-    // Adicionar evento de tecla Enter no campo de CEP
-    cepInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault(); // Evitar envio do formulário
-        const cep = cepInput.value;
-        if (cep) {
-          buscarCep(cep);
-        } else {
-          messageDiv.textContent = "Por favor, digite um CEP válido.";
-          messageDiv.style.color = "#cc0000";
-        }
-      }
-    });
-    
-    console.log('Eventos adicionados ao botão de buscar CEP e campo de CEP');
-  } else {
-    console.error('Botão de buscar CEP não encontrado após tentativa de criação');
-  }
-}
-
-// Função para configurar o botão de buscar CEP foi movida para cima no código
-
-// Função para processar pagamento PIX
-async function processPixPayment() {
-  console.log('Função processPixPayment chamada');
-  console.log('Iniciando processamento de pagamento PIX');
-  
-  // Verificar se o elemento messageDiv existe
-  if (!messageDiv) {
-    console.error('Elemento messageDiv não encontrado no DOM');
-    alert('Erro ao processar pagamento: Elemento de mensagem não encontrado.');
-    return;
-  }
-  
-  // Mostrar mensagem de processamento
-  messageDiv.textContent = "Processando pagamento PIX, aguarde...";
-  messageDiv.style.color = "#0066cc";
-  
-  try {
-    // Obter os valores dos campos
-    const pixNameElement = document.getElementById('pix-name');
-    const pixCpfElement = document.getElementById('pix-cpf');
-    const pixEmailElement = document.getElementById('pix-email');
-    const pixTelefoneElement = document.getElementById('pix-telefone');
-    
-    // Verificar se os elementos existem
-    if (!pixNameElement || !pixCpfElement || !pixEmailElement || !pixTelefoneElement) {
-      console.error('Elementos de formulário PIX não encontrados:', {
-        nome: !!pixNameElement,
-        cpf: !!pixCpfElement,
-        email: !!pixEmailElement,
-        telefone: !!pixTelefoneElement
-      });
-      messageDiv.textContent = "Erro ao processar pagamento: Elementos do formulário não encontrados.";
-      messageDiv.style.color = "#cc0000";
-      return;
-    }
-    
-    const nome = pixNameElement.value;
-    const cpf = pixCpfElement.value;
-    const email = pixEmailElement.value;
-    const telefone = pixTelefoneElement.value;
-    
-    // Validar campos obrigatórios
-    if (!nome || !cpf || !email || !telefone) {
-      messageDiv.textContent = "Por favor, preencha todos os campos obrigatórios.";
-      messageDiv.style.color = "#cc0000";
-      return;
-    }
-    
-    // Validação básica de CPF (apenas verifica se tem 11 dígitos após remover caracteres especiais)
-    const cpfNumerico = cpf.replace(/[^0-9]/g, '');
-    if (cpfNumerico.length !== 11) {
-      messageDiv.textContent = "CPF inválido. Por favor, digite um CPF válido.";
-      messageDiv.style.color = "#cc0000";
-      return;
-    }
-    
-    // Obter o valor total
-    const totalElement = document.getElementById('total-geral');
-    let total = 100.00; // Valor padrão
-    
-    if (totalElement) {
-      // Remover caracteres não numéricos e converter para float
-      const totalText = totalElement.textContent.replace(/[^0-9.,]/g, '').replace(',', '.');
-      const parsedTotal = parseFloat(totalText);
-      if (!isNaN(parsedTotal)) {
-        total = parsedTotal;
-      }
-    }
-    
-    // Obter os dados de endereço
-    const cep = document.getElementById('cep')?.value || '';
-    const rua = document.getElementById('rua')?.value || '';
-    const numero = document.getElementById('numero')?.value || '';
-    const complemento = document.getElementById('complemento')?.value || '';
-    const bairro = document.getElementById('bairro')?.value || '';
-    const cidade = document.getElementById('cidade')?.value || '';
-    const estado = document.getElementById('estado')?.value || '';
-    
-    // Dividir o nome completo em nome e sobrenome
-    const nomeCompleto = nome.trim().split(' ');
-    const firstName = nomeCompleto[0] || 'Cliente';
-    const lastName = nomeCompleto.length > 1 ? nomeCompleto.slice(1).join(' ') : 'ArchiCat';
-    
-    // Preparar os dados para enviar ao backend
-    const paymentData = {
-      transaction_amount: total,
-      description: "Produtos ArchiCat",
-      payment_method_id: "pix",
-      payer: {
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        identification: {
-          type: "CPF",
-          number: cpfNumerico
-        }
-      }
-    };
-    
-    // Adicionar dados de telefone e endereço se disponíveis
-    if (telefone) {
-      paymentData.payer.phone = {
-        area_code: telefone.substring(0, 2),
-        number: telefone.replace(/\D/g, '').substring(2)
-      };
-    }
-    
-    if (cep && rua && numero && bairro && cidade && estado) {
-      paymentData.payer.address = {
-        zip_code: cep.replace(/\D/g, ''),
-        street_name: rua,
-        street_number: numero,
-        neighborhood: bairro,
-        city: cidade,
-        federal_unit: estado
-      };
-    }
-    
-    console.log('Dados de pagamento preparados:', paymentData);
-    
-    // Fazer requisição para o backend
-    const baseUrl = getServerBaseUrl();
-    
-    // Gerar um UUID para o cabeçalho X-Idempotency-Key
-    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : 
-      ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-      );
-    
-    console.log('X-Idempotency-Key gerado:', idempotencyKey);
-    
-    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': idempotencyKey
-      },
-      body: JSON.stringify(paymentData)
-    });
-    
-    // Registrar o cabeçalho enviado para depuração
-    console.log('Requisição enviada com X-Idempotency-Key:', idempotencyKey);
-    
-    console.log('Resposta do servidor:', response.status, response.statusText);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erro na resposta:', errorText);
-      
-      // Tentar analisar o erro como JSON para exibir mensagens mais específicas
-      try {
-        const errorData = JSON.parse(errorText);
-        console.error('Detalhes do erro:', errorData);
-        
-        // Verificar se é um erro relacionado ao X-Idempotency-Key
-        if (errorData.response && errorData.response.cause) {
-          const causes = errorData.response.cause;
-          for (const cause of causes) {
-            if (cause.description && cause.description.includes('X-Idempotency-Key')) {
-              messageDiv.textContent = "Erro de validação: Chave de idempotência inválida. Tente novamente.";
-              messageDiv.style.color = "#cc0000";
-              return; // Interrompe a execução para não lançar o erro genérico
-            }
-          }
-        }
-        
-        // Exibir mensagem de erro mais específica se disponível
-        if (errorData.error || errorData.message) {
-          messageDiv.textContent = `Erro ao processar pagamento: ${errorData.error || errorData.message}`;
-          messageDiv.style.color = "#cc0000";
-          return; // Interrompe a execução para não lançar o erro genérico
-        }
-      } catch (jsonError) {
-        // Se não conseguir analisar como JSON, continua com o tratamento padrão
-        console.error('Erro ao analisar resposta de erro como JSON:', jsonError);
-      }
-      
-      throw new Error(`Erro no servidor: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Dados recebidos do servidor:', data);
-    
-    // Exibir QR Code
-    const qrCodeContainer = document.getElementById('qr-code-container');
-    if (qrCodeContainer && data.qrCodeBase64) {
-      // Limpar o conteúdo anterior do container
-      qrCodeContainer.innerHTML = '';
-      
-      // Criar elementos para exibir o QR Code
-      const qrImg = document.createElement('img');
-      qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
-      qrImg.alt = 'QR Code PIX';
-      qrCodeContainer.appendChild(qrImg);
-      
-      const scanText = document.createElement('p');
-      scanText.textContent = 'Escaneie o QR Code acima com o aplicativo do seu banco para pagar';
-      qrCodeContainer.appendChild(scanText);
-      
-      const copyText = document.createElement('p');
-      copyText.textContent = 'Ou copie o código PIX abaixo:';
-      qrCodeContainer.appendChild(copyText);
-      
-      const pixCodeArea = document.createElement('textarea');
-      pixCodeArea.readOnly = true;
-      pixCodeArea.className = 'pix-code';
-      pixCodeArea.id = 'pix-code-text';
-      pixCodeArea.value = data.pixCode || '';
-      qrCodeContainer.appendChild(pixCodeArea);
-      
-      const copyButton = document.createElement('button');
-      copyButton.textContent = 'Copiar código PIX';
-      copyButton.className = 'copy-button';
-      copyButton.onclick = function() {
-        const pixCodeText = document.getElementById('pix-code-text');
-        if (pixCodeText) {
-          pixCodeText.select();
-          document.execCommand('copy');
-          copyButton.textContent = 'Código copiado!';
-          setTimeout(() => {
-            copyButton.textContent = 'Copiar código PIX';
-          }, 3000);
-        }
-      };
-      qrCodeContainer.appendChild(copyButton);
-      
-      // Adicionar elemento para mostrar status do pagamento
-      const statusElement = document.createElement('div');
-      statusElement.id = 'payment-status-message';
-      statusElement.className = 'payment-status';
-      statusElement.innerHTML = '<strong>Status:</strong> Aguardando pagamento...';
-      qrCodeContainer.appendChild(statusElement);
-      
-      // Ocultar o botão PIX após gerar o QR code
-      const pixButton = document.getElementById('pix-button');
-      if (pixButton) {
-        pixButton.style.display = 'none';
-      }
-      
-      messageDiv.textContent = "Pagamento PIX gerado com sucesso!";
-      messageDiv.style.color = "#0066cc";
-      
-      // Iniciar verificação periódica do status do pagamento
-      if (data.payment_id) {
-        startPaymentStatusCheck(data.payment_id);
-      }
-    } else {
-      messageDiv.textContent = "Erro ao gerar QR Code.";
-      messageDiv.style.color = "#cc0000";
-    }
-    
-  } catch (error) {
-    console.error('Erro durante o processamento do pagamento:', error);
-    messageDiv.textContent = "Erro ao processar pagamento. Tente novamente.";
-    messageDiv.style.color = "#cc0000";
-  }
+  // Iniciar a verificação periódica
+  runPeriodicCheck();
 }
