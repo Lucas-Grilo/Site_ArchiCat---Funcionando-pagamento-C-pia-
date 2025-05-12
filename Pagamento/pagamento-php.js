@@ -529,79 +529,85 @@ async function processPixPayment() {
       qrImg.alt = 'QR Code PIX';
       qrCodeContainer.appendChild(qrImg);
       
+      // Adicionar texto explicativo
       const scanText = document.createElement('p');
       scanText.textContent = 'Escaneie o QR Code acima com o aplicativo do seu banco para pagar';
       qrCodeContainer.appendChild(scanText);
       
+      // Adicionar área para código PIX copiável
       const copyText = document.createElement('p');
       copyText.textContent = 'Ou copie o código PIX abaixo:';
       qrCodeContainer.appendChild(copyText);
       
+      // Criar textarea para o código PIX
       const pixCodeArea = document.createElement('textarea');
       pixCodeArea.readOnly = true;
       pixCodeArea.className = 'pix-code';
       pixCodeArea.id = 'pix-code-text';
       pixCodeArea.value = data.pixCode || '';
+      pixCodeArea.style.width = '100%';
+      pixCodeArea.style.height = '60px';
+      pixCodeArea.style.marginBottom = '10px';
       qrCodeContainer.appendChild(pixCodeArea);
       
+      // Criar botão para copiar o código PIX
       const copyButton = document.createElement('button');
       copyButton.textContent = 'Copiar código PIX';
       copyButton.className = 'copy-button';
+      copyButton.style.marginBottom = '15px';
       qrCodeContainer.appendChild(copyButton);
       
       // Adicionar evento de clique para copiar o código
       copyButton.addEventListener('click', function() {
         const pixCodeText = document.getElementById('pix-code-text');
-        if (pixCodeText) {
-          pixCodeText.select();
-          navigator.clipboard.writeText(pixCodeText.value)
-            .then(() => {
-              // Feedback visual temporário
-              const originalText = copyButton.textContent;
-              copyButton.textContent = 'Código copiado!';
-              setTimeout(() => {
-                copyButton.textContent = originalText;
-              }, 2000);
-            })
-            .catch(err => {
-              console.error('Erro ao copiar texto:', err);
+        pixCodeText.select();
+        navigator.clipboard.writeText(pixCodeText.value)
+          .then(() => {
+            // Feedback visual temporário
+            const originalText = copyButton.textContent;
+            copyButton.textContent = 'Código copiado!';
+            setTimeout(() => {
+              copyButton.textContent = originalText;
+            }, 2000);
+          })
+          .catch(err => {
+            console.error('Erro ao copiar texto: ', err);
+            if (messageDiv) {
               messageDiv.textContent = 'Erro ao copiar o código PIX. Tente selecionar e copiar manualmente.';
               messageDiv.style.color = "#cc0000";
-            });
-        }
+            }
+          });
       });
       
-      // Ocultar o botão PIX após gerar o QR Code
+      // Mostrar mensagem de sucesso
+      if (messageDiv) {
+        messageDiv.textContent = 'QR Code PIX gerado com sucesso! Escaneie para pagar.';
+        messageDiv.style.color = "#008800";
+      }
+      
+      // Ocultar o botão de gerar QR Code PIX
       const pixButton = document.getElementById('pix-button');
       if (pixButton) {
         pixButton.style.display = 'none';
       }
       
-      // Atualizar mensagem de sucesso
-      messageDiv.textContent = "QR Code PIX gerado com sucesso! Escaneie para pagar.";
-      messageDiv.style.color = "#008800";
-      
-      // Salvar o ID do pagamento para verificação posterior
+      // Criar container para status do pagamento
+      const statusContainer = document.createElement('div');
+      statusContainer.id = 'payment-status-container';
+      statusContainer.style.padding = '10px';
+      statusContainer.style.backgroundColor = '#f0f0f0';
+      statusContainer.style.borderRadius = '5px';
+      statusContainer.style.marginTop = '10px';
+      statusContainer.innerHTML = `
+        <p><strong>Status do pagamento:</strong> Aguardando pagamento</p>
+        <p>Por favor, escaneie o QR Code acima com o aplicativo do seu banco para pagar.</p>
+        <p>A página de confirmação será exibida automaticamente após a confirmação do pagamento.</p>
+        <div id="payment-status-message"></div>
+      `;
+      qrCodeContainer.appendChild(statusContainer);
+        
+      // Iniciar verificação periódica do status do pagamento
       if (data.payment_id) {
-        sessionStorage.setItem('pixPaymentId', data.payment_id);
-        console.log('ID do pagamento PIX salvo:', data.payment_id);
-        
-        // Criar um elemento para mostrar o status do pagamento
-        const statusContainer = document.createElement('div');
-        statusContainer.id = 'payment-status-container';
-        statusContainer.style.padding = '10px';
-        statusContainer.style.backgroundColor = '#f0f0f0';
-        statusContainer.style.borderRadius = '5px';
-        statusContainer.style.marginTop = '10px';
-        statusContainer.innerHTML = `
-          <p><strong>Status do pagamento:</strong> Aguardando pagamento</p>
-          <p>Por favor, escaneie o QR Code acima com o aplicativo do seu banco para pagar.</p>
-          <p>A página de confirmação será exibida automaticamente após a confirmação do pagamento.</p>
-          <div id="payment-status-message"></div>
-        `;
-        qrCodeContainer.appendChild(statusContainer);
-        
-        // Iniciar verificação periódica do status do pagamento
         startPaymentStatusCheck(data.payment_id);
       }
     } else {
@@ -633,112 +639,6 @@ async function processPixPayment() {
     return false;
   }
 }
-      qrImg.alt = 'QR Code PIX';
-      qrCodeContainer.appendChild(qrImg);
-      
-      const scanText = document.createElement('p');
-      scanText.textContent = 'Escaneie o QR Code acima com o aplicativo do seu banco para pagar';
-      qrCodeContainer.appendChild(scanText);
-      
-      const copyText = document.createElement('p');
-      copyText.textContent = 'Ou copie o código PIX abaixo:';
-      qrCodeContainer.appendChild(copyText);
-      
-      const pixCodeArea = document.createElement('textarea');
-      pixCodeArea.readOnly = true;
-      pixCodeArea.className = 'pix-code';
-      pixCodeArea.id = 'pix-code-text';
-      pixCodeArea.value = data.pixCode || '';
-      qrCodeContainer.appendChild(pixCodeArea);
-      
-      const copyButton = document.createElement('button');
-      copyButton.textContent = 'Copiar código PIX';
-      copyButton.className = 'copy-button';
-      qrCodeContainer.appendChild(copyButton);
-      
-      // Adicionar evento de clique para copiar o código
-      copyButton.addEventListener('click', function() {
-        const pixCodeText = document.getElementById('pix-code-text');
-        if (pixCodeText) {
-          pixCodeText.select();
-          navigator.clipboard.writeText(pixCodeText.value)
-            .then(() => {
-              // Feedback visual temporário
-              const originalText = copyButton.textContent;
-              copyButton.textContent = 'Código copiado!';
-              setTimeout(() => {
-                copyButton.textContent = originalText;
-              }, 2000);
-            })
-            .catch(err => {
-              console.error('Erro ao copiar texto:', err);
-              messageDiv.textContent = 'Erro ao copiar o código PIX. Tente selecionar e copiar manualmente.';
-              messageDiv.style.color = "#cc0000";
-            });
-        }
-      });
-      
-      // Ocultar o botão PIX após gerar o QR Code
-      const pixButton = document.getElementById('pix-button');
-      if (pixButton) {
-        pixButton.style.display = 'none';
-      }
-      
-      // Atualizar mensagem de sucesso
-      messageDiv.textContent = "QR Code PIX gerado com sucesso! Escaneie para pagar.";
-      messageDiv.style.color = "#008800";
-      
-      // Salvar o ID do pagamento para verificação posterior
-      if (data.payment_id) {
-        sessionStorage.setItem('pixPaymentId', data.payment_id);
-        console.log('ID do pagamento PIX salvo:', data.payment_id);
-        
-        // Criar um elemento para mostrar o status do pagamento
-        const statusContainer = document.createElement('div');
-        statusContainer.id = 'payment-status-container';
-        statusContainer.style.padding = '10px';
-        statusContainer.style.backgroundColor = '#f0f0f0';
-        statusContainer.style.borderRadius = '5px';
-        statusContainer.style.marginTop = '10px';
-        statusContainer.innerHTML = `
-          <p><strong>Status do pagamento:</strong> Aguardando pagamento</p>
-          <p>Por favor, escaneie o QR Code acima com o aplicativo do seu banco para pagar.</p>
-          <p>A página de confirmação será exibida automaticamente após a confirmação do pagamento.</p>
-          <div id="payment-status-message"></div>
-        `;
-        qrCodeContainer.appendChild(statusContainer);
-        
-        // Iniciar verificação periódica do status do pagamento
-        startPaymentStatusCheck(data.payment_id);
-      }
-    } else {
-      throw new Error('Não foi possível gerar o QR Code PIX');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Erro ao processar pagamento PIX:', error);
-    
-    // Reativar o botão PIX
-    const pixButton = document.getElementById('pix-button');
-    if (pixButton) {
-      pixButton.textContent = 'Gerar QR Code PIX';
-      pixButton.disabled = false;
-      pixButton.style.display = 'block';
-    }
-    
-    // Exibir mensagem de erro
-    if (messageDiv) {
-      if (error.message && error.message.includes('Failed to fetch')) {
-        messageDiv.innerHTML = 'Erro de conexão com o servidor. <br><br><strong>Possíveis soluções:</strong><br>1. Verifique sua conexão com a internet<br>2. Atualize a página e tente novamente<br>3. Se o problema persistir, entre em contato com o suporte';
-      } else {
-        messageDiv.textContent = `Erro ao processar o pagamento: ${error.message || 'Tente novamente'}`;
-      }
-      messageDiv.style.color = "#cc0000";
-    }
-    
-    return false;
-  }
 
 // Função para verificar o status do pagamento periodicamente
 function startPaymentStatusCheck(paymentId) {
@@ -751,6 +651,50 @@ function startPaymentStatusCheck(paymentId) {
   
   // Função para verificar o status do pagamento
   async function checkPaymentStatus() {
+    try {
+      attempts++;
+      console.log(`Verificando status do pagamento (tentativa ${attempts}/${maxAttempts})`);
+      
+      // Fazer requisição para o backend para verificar o status
+      const baseUrl = getServerBaseUrl();
+      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Status do pagamento:', data);
+        
+        // Atualizar a mensagem de status
+        const statusMessage = document.getElementById('payment-status-message');
+        if (statusMessage) {
+          statusMessage.textContent = `Status atual: ${data.status || 'Verificando...'}`;
+        }
+        
+        // Se o pagamento foi aprovado, redirecionar para a página de sucesso
+        if (data.status === 'approved' || data.status === 'Aprovado') {
+          console.log('Pagamento aprovado! Redirecionando para página de sucesso...');
+          window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+          return; // Interromper as verificações
+        }
+      }
+      
+      // Continuar verificando se não atingiu o número máximo de tentativas
+      if (attempts < maxAttempts) {
+        setTimeout(checkPaymentStatus, checkInterval);
+      } else {
+        console.log('Número máximo de tentativas atingido. Parando verificação automática.');
+        const statusMessage = document.getElementById('payment-status-message');
+        if (statusMessage) {
+          statusMessage.innerHTML = 'Verificação automática encerrada. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Verificar manualmente</a>';
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do pagamento:', error);
+      // Continuar verificando mesmo com erro
+      if (attempts < maxAttempts) {
+        setTimeout(checkPaymentStatus, checkInterval);
+      }
+    }
+  }
     attempts++;
     console.log(`Verificando status do pagamento (tentativa ${attempts}/${maxAttempts})`);
     
@@ -760,13 +704,40 @@ function startPaymentStatusCheck(paymentId) {
     try {
       // Fazer requisição para o backend para verificar o status
       const baseUrl = getServerBaseUrl();
-      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`)
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response;
+  })
+  .catch(error => {
+    console.error('Error fetching payment status:', error);
+    throw error;
+  });
       
       if (!response.ok) {
         throw new Error(`Erro ao verificar status: ${response.status}`);
       }
       
-      const statusData = await response.json();
+response.json().then(statusData => {
+  console.log('Status do pagamento:', statusData);
+  
+  // Update status message
+  if (statusMessageElement) {
+    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
+  }
+  
+  // Check if payment was approved
+  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+    // Handle approved payment...
+  }
+}).catch(error => {
+  console.error('Error parsing JSON response:', error);
+  if (statusMessageElement) {
+    statusMessageElement.textContent = 'Error checking payment status';
+  }
+});
       console.log('Status do pagamento:', statusData);
       
       // Atualizar a mensagem de status
@@ -859,146 +830,66 @@ function startPaymentStatusCheck(paymentId) {
   
   // Iniciar a verificação periódica
   runPeriodicCheck();
-}
-// Esta função já está definida acima
-      
-      // Verificar se o pagamento foi rejeitado ou cancelado
-      if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
-          statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
-        console.log('Pagamento rejeitado ou cancelado');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
-          statusMessageElement.style.color = '#cc0000';
-        }
-        
-        // Reativar o botão PIX
-        const pixButton = document.getElementById('pix-button');
-        if (pixButton) {
-          pixButton.textContent = 'Tentar novamente';
-          pixButton.disabled = false;
-          pixButton.style.display = 'block';
-        }
-        
-        // Interromper a verificação periódica
-        return true;
-      }
-      
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        console.log('Número máximo de tentativas atingido');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-        }
-        
-        return true;
-      }
-      
-      // Continuar verificando
-      return false;
-    } catch (error) {
-      console.error('Erro ao verificar status do pagamento:', error);
-      
-      if (statusMessageElement) {
-        statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
-      }
-      
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-        }
-        return true;
-      }
-      
-      return false;
-    }
-  }
-  
-  // Função para executar a verificação periodicamente
-  async function runPeriodicCheck() {
-    const shouldStop = await checkPaymentStatus();
-    
-    if (!shouldStop) {
-      // Agendar próxima verificação
-      setTimeout(runPeriodicCheck, checkInterval);
-    }
-  }
-  
-  // Iniciar a verificação periódica
+  // Start periodic check
   runPeriodicCheck();
-}
-
-// Função para verificar o status do pagamento periodicamente
-// Esta função já está definida acima
+// Function to check payment status periodically
+function startPaymentStatusCheck(paymentId) {
+  console.log('Starting periodic payment status check:', paymentId);
+  
+  // Settings for periodic check
+  const checkInterval = 5000; // 5 seconds between checks
+  const maxAttempts = 60; // Check for up to 5 minutes (60 * 5s = 300s = 5min)
+  let attempts = 0;
+  
+  // Function to check payment status
+  async function checkPaymentStatus() {
+    try {
+      attempts++;
+      console.log(`Checking payment status (attempt ${attempts}/${maxAttempts})`);
       
-      // Verificar se o pagamento foi rejeitado ou cancelado
-      if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
-          statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
-        console.log('Pagamento rejeitado ou cancelado');
+      // Make request to backend to check status
+      const baseUrl = getServerBaseUrl();
+      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment status:', data);
         
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
-          statusMessageElement.style.color = '#cc0000';
+        // Update status message
+        const statusMessage = document.getElementById('payment-status-message');
+        if (statusMessage) {
+          statusMessage.textContent = `Current status: ${data.status || 'Checking...'}`;
         }
         
-        // Reativar o botão PIX
-        const pixButton = document.getElementById('pix-button');
-        if (pixButton) {
-          pixButton.textContent = 'Tentar novamente';
-          pixButton.disabled = false;
-          pixButton.style.display = 'block';
+        // If payment was approved, redirect to success page
+        if (data.status === 'approved' || data.status === 'Aprovado') {
+          console.log('Payment approved! Redirecting to success page...');
+          window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+          return; // Stop checks
         }
-        
-        // Interromper a verificação periódica
-        return true;
       }
       
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        console.log('Número máximo de tentativas atingido');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
+      // Continue checking if max attempts not reached
+      if (attempts < maxAttempts) {
+        setTimeout(checkPaymentStatus, checkInterval);
+      } else {
+        console.log('Maximum attempts reached. Stopping automatic check.');
+        const statusMessage = document.getElementById('payment-status-message');
+        if (statusMessage) {
+          statusMessage.innerHTML = 'Automatic check ended. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Check manually</a>';
         }
-        
-        return true;
       }
-      
-      // Continuar verificando
-      return false;
     } catch (error) {
-      console.error('Erro ao verificar status do pagamento:', error);
-      
-      if (statusMessageElement) {
-        statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
+      console.error('Error checking payment status:', error);
+      // Continue checking even with error
+      if (attempts < maxAttempts) {
+        setTimeout(checkPaymentStatus, checkInterval);
       }
-      
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-        }
-        return true;
-      }
-      
-      return false;
     }
   }
   
-  // Função para executar a verificação periodicamente
-  async function runPeriodicCheck() {
-    const shouldStop = await checkPaymentStatus();
-    
-    if (!shouldStop) {
-      // Agendar próxima verificação
-      setTimeout(runPeriodicCheck, checkInterval);
-    }
-  }
-  
-  // Iniciar a verificação periódica
-  runPeriodicCheck();
+  // Start initial check
+  checkPaymentStatus();
 }
 
 // Função para configurar o botão de buscar CEP
@@ -1275,13 +1166,57 @@ async function processPixPayment() {
       qrImg.alt = 'QR Code PIX';
       qrCodeContainer.appendChild(qrImg);
       
-      // Mostrar a URL do PIX gerado
-      const pixUrlElement = document.createElement('p');
-      pixUrlElement.textContent = `Escaneie o QR Code para concluir o pagamento ou use a URL do PIX: ${data.pixUrl}`;
-      qrCodeContainer.appendChild(pixUrlElement);
+      const scanText = document.createElement('p');
+      scanText.textContent = 'Escaneie o QR Code acima com o aplicativo do seu banco para pagar';
+      qrCodeContainer.appendChild(scanText);
+      
+      const copyText = document.createElement('p');
+      copyText.textContent = 'Ou copie o código PIX abaixo:';
+      qrCodeContainer.appendChild(copyText);
+      
+      const pixCodeArea = document.createElement('textarea');
+      pixCodeArea.readOnly = true;
+      pixCodeArea.className = 'pix-code';
+      pixCodeArea.id = 'pix-code-text';
+      pixCodeArea.value = data.pixCode || '';
+      qrCodeContainer.appendChild(pixCodeArea);
+      
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copiar código PIX';
+      copyButton.className = 'copy-button';
+      copyButton.onclick = function() {
+        const pixCodeText = document.getElementById('pix-code-text');
+        if (pixCodeText) {
+          pixCodeText.select();
+          document.execCommand('copy');
+          copyButton.textContent = 'Código copiado!';
+          setTimeout(() => {
+            copyButton.textContent = 'Copiar código PIX';
+          }, 3000);
+        }
+      };
+      qrCodeContainer.appendChild(copyButton);
+      
+      // Adicionar elemento para mostrar status do pagamento
+      const statusElement = document.createElement('div');
+      statusElement.id = 'payment-status-message';
+      statusElement.className = 'payment-status';
+      statusElement.innerHTML = '<strong>Status:</strong> Aguardando pagamento...';
+      qrCodeContainer.appendChild(statusElement);
+      
+      // Ocultar o botão PIX após gerar o QR code
+      const pixButton = document.getElementById('pix-button');
+      if (pixButton) {
+        pixButton.style.display = 'none';
+      }
       
       messageDiv.textContent = "Pagamento PIX gerado com sucesso!";
       messageDiv.style.color = "#0066cc";
+      
+      // Iniciar verificação periódica do status do pagamento
+      if (data.payment_id) {
+        startPaymentStatusCheck(data.payment_id);
+      }
     } else {
       messageDiv.textContent = "Erro ao gerar QR Code.";
       messageDiv.style.color = "#cc0000";
