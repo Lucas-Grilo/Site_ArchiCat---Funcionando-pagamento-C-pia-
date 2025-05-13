@@ -114,9 +114,21 @@ function loadUserImage() {
       img.onerror = function() {
         console.error('Erro ao carregar a imagem - evento onerror acionado');
         console.error('Tentativa de carregar:', img.src.substring(0, 30) + '...');
-        userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem do usuário.</p>';
-        console.log('Exibindo mensagem de erro em vez de carregar imagem padrão');
-      
+        userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
+        
+        // Tentar carregar uma imagem padrão como fallback
+        try {
+          const fallbackImg = document.createElement('img');
+          fallbackImg.src = 'img/logo1.png';
+          fallbackImg.alt = 'Imagem padrão';
+          fallbackImg.style.maxWidth = '100%';
+          fallbackImg.style.maxHeight = '300px';
+          userImagePreview.innerHTML = '';
+          userImagePreview.appendChild(fallbackImg);
+          console.log('Carregando imagem padrão como fallback');
+        } catch (fallbackError) {
+          console.error('Erro ao carregar imagem padrão:', fallbackError);
+        }
       };
       
       // Definir a fonte da imagem após configurar os eventos
@@ -130,9 +142,22 @@ function loadUserImage() {
       userImagePreview.innerHTML = '<p>Erro ao processar a imagem.</p>';
     }
   } else {
-    // Se não houver imagem no sessionStorage ou localStorage, exibir mensagem
+    // Se não houver imagem no sessionStorage ou localStorage, exibir mensagem e tentar carregar imagem padrão
     console.error('Não foi possível carregar a imagem do sessionStorage ou localStorage.');
-    userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem do usuário.</p>';
+    
+    try {
+      const fallbackImg = document.createElement('img');
+      fallbackImg.src = 'img/logo1.png';
+      fallbackImg.alt = 'Imagem padrão';
+      fallbackImg.style.maxWidth = '100%';
+      fallbackImg.style.maxHeight = '300px';
+      userImagePreview.innerHTML = '';
+      userImagePreview.appendChild(fallbackImg);
+      console.log('Carregando imagem padrão como fallback');
+    } catch (fallbackError) {
+      console.error('Erro ao carregar imagem padrão:', fallbackError);
+      userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
+    }
   }
 }
 
