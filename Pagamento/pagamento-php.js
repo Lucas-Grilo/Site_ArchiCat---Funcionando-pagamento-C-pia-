@@ -753,132 +753,160 @@ function startPaymentStatusCheck(paymentId) {
       console.error('Erro ao verificar status do pagamento:', error);
       // Continuar verificando mesmo com erro
       if (attempts < maxAttempts) {
-        setTimeout(checkPaymentStatus, checkInterval);
+        setTimeout(() => checkPaymentStatus(paymentId), checkInterval);
       }
     }
   }
-    attempts++;
+}
+
+// Função para iniciar a verificação periódica do status do pagamento
+function startPaymentStatusCheck(paymentId) {
+  if (!paymentId) {
+    console.error('ID do pagamento não fornecido para verificação de status');
+    return;
+  }
+  
+  console.log('Iniciando verificação periódica do status do pagamento:', paymentId);
+  
+  // Salvar o ID do pagamento no sessionStorage para recuperação posterior
+  sessionStorage.setItem('pixPaymentId', paymentId);
+  
+  // Iniciar a verificação periódica
+  runPeriodicCheck(paymentId);
+}
+
+// Função para executar a verificação periódica
+async function runPeriodicCheck(paymentId) {
+  console.log('Executando verificação periódica para o pagamento:', paymentId);
+  
+  // Verificar o status do pagamento
+  const shouldStop = await checkPaymentStatus(paymentId);
+  
+  // Se a verificação indicar que devemos parar, não agendar a próxima verificação
+  if (shouldStop) {
+    console.log('Verificação periódica interrompida');
+    return;
+  }
+  
+  // Agendar a próxima verificação após 5 segundos
+  setTimeout(() => runPeriodicCheck(paymentId), 5000);
+}
+
+// Função para verificar o status do pagamento
+async function checkPaymentStatus(paymentId) {
+  // Definir variáveis para controle de tentativas
+  const maxAttempts = 12; // 1 minuto (12 tentativas a cada 5 segundos)
+  
+  // Usar uma variável estática através de uma propriedade da função
+  if (typeof checkPaymentStatus.attempts === 'undefined') {
+    checkPaymentStatus.attempts = 0;
+  }
+  checkPaymentStatus.attempts++;
+  
+  try {
+    // Verificar se o paymentId foi fornecido como parâmetro
+    if (!paymentId) {
+      // Tentar obter do sessionStorage como fallback
+      paymentId = sessionStorage.getItem('pixPaymentId');
+      if (!paymentId) {
+        console.error('ID do pagamento não encontrado');
+        return true; // Interromper a verificação
+      }
+    }
+    
     console.log(`Verificando status do pagamento (tentativa ${attempts}/${maxAttempts})`);
     
     // Elemento para exibir mensagens de status
     const statusMessageElement = document.getElementById('payment-status-message');
     
-    try {
-      // Fazer requisição para o backend para verificar o status
-      const baseUrl = getServerBaseUrl();
-fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`)
-  .then(response => {
+    // Fazer requisição para o backend para verificar o status
+    const baseUrl = getServerBaseUrl();
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Erro ao verificar status: ${response.status}`);
     }
-    return response;
-  })
-  .catch(error => {
-    console.error('Error fetching payment status:', error);
-    throw error;
-  });
+    
+    const statusData = await response.json();
+    console.log('Status do pagamento:', statusData);
       
-      if (!response.ok) {
-        throw new Error(`Erro ao verificar status: ${response.status}`);
-      }
+    // Atualizar a mensagem de status
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
+    }
       
-response.json().then(statusData => {
-  console.log('Status do pagamento:', statusData);
-  
-  // Update status message
-  if (statusMessageElement) {
-    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
-  }
-  
-  // Check if payment was approved
-  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
-    // Handle approved payment...
-  }
-}).catch(error => {
-  console.error('Error parsing JSON response:', error);
-  if (statusMessageElement) {
-    statusMessageElement.textContent = 'Error checking payment status';
-  }
-});
-      console.log('Status do pagamento:', statusData);
-      
-      // Atualizar a mensagem de status
-      if (statusMessageElement) {
-        statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
-      }
-      
-      // Verificar se o pagamento foi aprovado
-      if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
-        console.log('Pagamento aprovado!');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
-          statusMessageElement.style.color = '#008800';
-        }
-        
-        // Redirecionar para a página de sucesso após 3 segundos
-        setTimeout(() => {
-          const baseUrl = window.location.origin;
-          window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
-        }, 3000);
-        
-        // Interromper a verificação periódica
-        return true;
-      }
-      
-      // Verificar se o pagamento foi rejeitado ou cancelado
-      if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
-          statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
-        console.log('Pagamento rejeitado ou cancelado');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
-          statusMessageElement.style.color = '#cc0000';
-        }
-        
-        // Reativar o botão PIX
-        const pixButton = document.getElementById('pix-button');
-        if (pixButton) {
-          pixButton.textContent = 'Tentar novamente';
-          pixButton.disabled = false;
-          pixButton.style.display = 'block';
-        }
-        
-        // Interromper a verificação periódica
-        return true;
-      }
-      
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        console.log('Número máximo de tentativas atingido');
-        
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-        }
-        
-        return true;
-      }
-      
-      // Continuar verificando
-      return false;
-    } catch (error) {
-      console.error('Erro ao verificar status do pagamento:', error);
+    // Verificar se o pagamento foi aprovado
+    if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+      console.log('Pagamento aprovado!');
       
       if (statusMessageElement) {
-        statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
+        statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
+        statusMessageElement.style.color = '#008800';
       }
       
-      // Se atingiu o número máximo de tentativas
-      if (attempts >= maxAttempts) {
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-        }
-        return true;
-      }
+      // Redirecionar para a página de sucesso após 3 segundos
+      setTimeout(() => {
+        const baseUrl = window.location.origin;
+        window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+      }, 3000);
       
-      return false;
+      // Interromper a verificação periódica
+      return true;
     }
+    
+    // Verificar se o pagamento foi rejeitado ou cancelado
+    if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
+        statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
+      console.log('Pagamento rejeitado ou cancelado');
+      
+      if (statusMessageElement) {
+        statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
+        statusMessageElement.style.color = '#cc0000';
+      }
+      
+      // Reativar o botão PIX
+      const pixButton = document.getElementById('pix-button');
+      if (pixButton) {
+        pixButton.textContent = 'Tentar novamente';
+        pixButton.disabled = false;
+        pixButton.style.display = 'block';
+      }
+      
+      // Interromper a verificação periódica
+      return true;
+    }
+    
+    // Se atingiu o número máximo de tentativas
+    if (attempts >= maxAttempts) {
+      console.log('Número máximo de tentativas atingido');
+      
+      if (statusMessageElement) {
+        statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
+      }
+      
+      return true;
+    }
+    
+    // Continuar verificando
+    return false;
+  } catch (error) {
+    console.error('Erro ao verificar status do pagamento:', error);
+    
+    if (statusMessageElement) {
+      statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
+    }
+    
+    // Se atingiu o número máximo de tentativas
+    if (attempts >= maxAttempts) {
+      if (statusMessageElement) {
+        statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
+      }
+      return true;
+    }
+    
+    return false;
   }
+}
   
   // Função para verificar o status do pagamento
   async function checkPaymentStatus(paymentId) {
@@ -897,6 +925,17 @@ response.json().then(statusData => {
       const statusMessageElement = document.getElementById('payment-status-message');
       
       console.log(`Verificando status do pagamento: ${paymentId}`);
+      
+      // Fazer requisição para o backend para verificar o status
+      const baseUrl = getServerBaseUrl();
+      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao verificar status: ${response.status}`);
+      }
+      
+      const statusData = await response.json();
+      console.log('Status do pagamento:', statusData);
       
       // Fazer requisição para o backend
       const baseUrl = getServerBaseUrl();
