@@ -18,7 +18,7 @@ function loadUserImage() {
   let screenCapture = null;
   
   // Tentar obter do sessionStorage com diferentes chaves
-  const possibleKeys = ['screenCapture', 'userImage', 'capturedImage'];
+  const possibleKeys = ['screenCapture', 'userImage', 'capturedImage', 'projectImage', 'imageData', 'designImage', 'canvasImage'];
   
   for (const key of possibleKeys) {
     screenCapture = sessionStorage.getItem(key);
@@ -44,6 +44,22 @@ function loadUserImage() {
     screenCapture = sessionStorage.getItem('imageUrl') || localStorage.getItem('imageUrl');
     if (screenCapture) {
       console.log('URL de imagem encontrada');
+    }
+  }
+  
+  // Verificar também no localStorage.projectData se existir
+  if (!screenCapture) {
+    try {
+      const projectData = localStorage.getItem('projectData');
+      if (projectData) {
+        const parsedData = JSON.parse(projectData);
+        if (parsedData && parsedData.image) {
+          screenCapture = parsedData.image;
+          console.log('Imagem encontrada em localStorage.projectData');
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao processar projectData:', e);
     }
   }
   
@@ -860,6 +876,42 @@ response.json().then(statusData => {
     }
   }
   
+  // Função para verificar o status do pagamento
+  async function checkPaymentStatus() {
+    try {
+      // Obter o ID do pagamento do sessionStorage
+      const paymentId = sessionStorage.getItem('pixPaymentId');
+      if (!paymentId) {
+        console.error('ID do pagamento não encontrado no sessionStorage');
+        return true; // Interromper a verificação
+      }
+      
+      // Elemento para exibir mensagens de status
+      const statusMessageElement = document.getElementById('payment-status-message');
+      
+      console.log(`Verificando status do pagamento: ${paymentId}`);
+      
+      // Fazer requisição para o backend
+      const baseUrl = getServerBaseUrl();
+      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao verificar status: ${response.status}`);
+      }
+      
+      const statusData = await response.json();
+      
+      // Processar o status do pagamento
+      return processPaymentStatus(statusData, statusMessageElement, paymentId);
+    } catch (error) {
+      console.error('Erro ao verificar status do pagamento:', error);
+      return false; // Continuar verificando
+    }
+  }
+  
+  // Definir o intervalo de verificação
+  const checkInterval = 5000; // 5 segundos
+  
   // Função para executar a verificação periodicamente
   async function runPeriodicCheck() {
     const shouldStop = await checkPaymentStatus();
@@ -870,34 +922,84 @@ response.json().then(statusData => {
     }
   }
   
-  // Iniciar a verificação periódica
-  runPeriodicCheck();
+  // Iniciar a verificação periódica após definir todas as funções necessárias
+  setTimeout(runPeriodicCheck, 1000);
 };
 
-// Função para verificar o status do pagamento
-async function checkPaymentStatus() {
-  try {
-    // Obter o ID do pagamento do sessionStorage
-    const paymentId = sessionStorage.getItem('pixPaymentId');
-    if (!paymentId) {
-      console.error('ID do pagamento não encontrado no sessionStorage');
-      return true; // Interromper a verificação
+// Esta função foi movida para antes de runPeriodicCheck
+
+// Função para processar o status do pagamento
+function processPaymentStatus(statusData, statusMessageElement, paymentId) {
+  console.log('Status do pagamento:', statusData);
+  
+  // Contador de tentativas
+  let attempts = window.paymentCheckAttempts || 0;
+  window.paymentCheckAttempts = attempts + 1;
+  
+  // Número máximo de tentativas (5 minutos com intervalo de 5 segundos = 60 tentativas)
+  const maxAttempts = 60;
+  const checkInterval = 5000; // 5 segundos
+  
+  // Atualizar a mensagem de status
+  if (statusMessageElement) {
+    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status || 'Desconhecido'}<br><strong>Última verificação:</strong> ${new Date().toLocaleTimeString()}`;
+  }
+  
+  // Verificar se o pagamento foi aprovado
+  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+    console.log('Pagamento aprovado!');
+    
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
+      statusMessageElement.style.color = '#008800';
     }
     
-    // Elemento para exibir mensagens de status
-    const statusMessageElement = document.getElementById('payment-status-message');
+    // Redirecionar para a página de sucesso após um breve delay
+    setTimeout(() => {
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+    }, 3000);
     
-    console.log(`Verificando status do pagamento: ${paymentId}`);
+    // Interromper a verificação periódica
+    return true;
+  }
+  
+  // Verificar se o pagamento foi rejeitado ou cancelado
+  if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
+      statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
+    console.log('Pagamento rejeitado ou cancelado');
     
-    // Fazer requisição para o backend
-    const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Erro ao verificar status: ${response.status}`);
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
+      statusMessageElement.style.color = '#cc0000';
     }
     
-    const statusData = await response.json();
+    // Reativar o botão PIX
+    const pixButton = document.getElementById('pix-button');
+    if (pixButton) {
+      pixButton.textContent = 'Tentar novamente';
+      pixButton.disabled = false;
+      pixButton.style.display = 'block';
+    }
+    
+    // Interromper a verificação periódica
+    return true;
+  }
+  
+  // Se atingiu o número máximo de tentativas
+  if (attempts >= maxAttempts) {
+    console.log('Número máximo de tentativas atingido');
+    
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
+    }
+    
+    return true;
+  }
+  
+  // Continuar verificando
+  return false;
+}
     console.log('Status do pagamento:', statusData);
     
     // Atualizar a mensagem de status
