@@ -78,20 +78,19 @@ function loadUserImage() {
     userImagePreview.innerHTML = '';
     
     try {
-      // Criar elemento de imagem e definir a fonte
+      // Criar elemento de imagem
       const img = document.createElement('img');
       
-      // Definir atributos da imagem primeiro
+      // Definir atributos da imagem
       img.alt = 'Sua imagem personalizada';
       img.style.maxWidth = '100%';
       img.style.maxHeight = '300px';
       
-      // Adicionar a imagem ao DOM imediatamente
-      userImagePreview.appendChild(img);
-      
+      // Configurar eventos antes de definir o src
       // Adicionar evento para verificar se a imagem carregou com sucesso
       img.onload = function() {
         console.log('Imagem carregada com sucesso!');
+        console.log('Fonte da imagem:', img.src.substring(0, 30) + '...');
         
         // Verificar se existem dados de miniaturas no sessionStorage
         const thumbnailsData = sessionStorage.getItem('thumbnailsData');
@@ -114,6 +113,7 @@ function loadUserImage() {
       // Adicionar evento para tratar erros de carregamento
       img.onerror = function() {
         console.error('Erro ao carregar a imagem - evento onerror acionado');
+        console.error('Tentativa de carregar:', img.src.substring(0, 30) + '...');
         userImagePreview.innerHTML = '<p>Não foi possível carregar a imagem.</p>';
         
         // Tentar carregar uma imagem padrão como fallback
@@ -133,6 +133,10 @@ function loadUserImage() {
       
       // Definir a fonte da imagem após configurar os eventos
       img.src = screenCapture;
+      
+      // Adicionar a imagem ao DOM após configurar tudo
+      userImagePreview.appendChild(img);
+      console.log('Imagem adicionada ao DOM, aguardando carregamento...');
     } catch (error) {
       console.error('Erro ao processar a imagem:', error);
       userImagePreview.innerHTML = '<p>Erro ao processar a imagem.</p>';
