@@ -927,14 +927,16 @@ async function checkPaymentStatus(paymentId) {
       console.log(`Verificando status do pagamento: ${paymentId}`);
       
       // Fazer requisição para o backend para verificar o status
-      const baseUrl = getServerBaseUrl();
-      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+// Get server base URL if not already defined
+const serverBaseUrl = getServerBaseUrl();
+// Make API request to check payment status
+const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
       
       if (!response.ok) {
         throw new Error(`Erro ao verificar status: ${response.status}`);
       }
       
-      const statusData = await response.json();
+const paymentStatusData = await response.json();
       console.log('Status do pagamento:', statusData);
       
       // Fazer requisição para o backend
