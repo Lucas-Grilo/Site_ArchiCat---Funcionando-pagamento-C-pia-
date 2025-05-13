@@ -517,13 +517,13 @@ async function processPixPayment() {
     
     // Gerar um UUID para o cabeçalho X-Idempotency-Key
     const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : 
-      ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      ([1e7]+'-'+1e3+'-'+4e3+'-'+8e3+'-'+1e11).replace(/[018]/g, c =>
+        (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4)).toString(16)
       );
     
     console.log('X-Idempotency-Key gerado:', idempotencyKey);
     
-    const response = await fetch(`${baseUrl}/Pagamento/process-pix.php`, {
+    const response = await fetch(`${baseUrl}/process-pix.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -877,13 +877,16 @@ response.json().then(statusData => {
   }
   
   // Função para verificar o status do pagamento
-  async function checkPaymentStatus() {
+  async function checkPaymentStatus(paymentId) {
     try {
-      // Obter o ID do pagamento do sessionStorage
-      const paymentId = sessionStorage.getItem('pixPaymentId');
+      // Verificar se o paymentId foi fornecido como parâmetro
       if (!paymentId) {
-        console.error('ID do pagamento não encontrado no sessionStorage');
-        return true; // Interromper a verificação
+        // Tentar obter do sessionStorage como fallback
+        paymentId = sessionStorage.getItem('pixPaymentId');
+        if (!paymentId) {
+          console.error('ID do pagamento não encontrado');
+          return true; // Interromper a verificação
+        }
       }
       
       // Elemento para exibir mensagens de status
@@ -914,7 +917,7 @@ response.json().then(statusData => {
   
   // Função para executar a verificação periodicamente
   async function runPeriodicCheck() {
-    const shouldStop = await checkPaymentStatus();
+    const shouldStop = await checkPaymentStatus(paymentId);
     
     if (!shouldStop) {
       // Agendar próxima verificação
@@ -924,9 +927,7 @@ response.json().then(statusData => {
   
   // Iniciar a verificação periódica após definir todas as funções necessárias
   setTimeout(runPeriodicCheck, 1000);
-};
-
-// Esta função foi movida para antes de runPeriodicCheck
+// Removed extra closing brace that was causing syntax error
 
 // Função para processar o status do pagamento
 function processPaymentStatus(statusData, statusMessageElement, paymentId) {
@@ -1047,10 +1048,78 @@ function processPaymentStatus(statusData, statusMessageElement, paymentId) {
     }
     
     return false; // Continuar verificando
+try {
+  // Add payment status checking logic here
+} catch (error) {
+    console.error('Error checking payment status:', error);
+    return false; // Continue checking
+  }
+// Function to process payment status
+function processPaymentStatus(statusData) {
+  // Get status message element
+  const statusMessageElement = document.getElementById('payment-status-message');
+  
+  // Log payment status
+  console.log('Payment status:', statusData);
+  
+  // Update status message if element exists
+  if (statusMessageElement) {
+    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status || 'Unknown'}`;
+  }
+  
+  // Check if payment is approved
+  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+    handleApprovedPayment(statusData.payment_id);
+    return true;
+  }
+  
+  // Check if payment is rejected/cancelled  
+  if (isPaymentRejected(statusData.status)) {
+    handleRejectedPayment();
+    return true;
+  }
+  
+  return false; // Continue checking
+}
+
+// Função principal para verificar o status do pagamento
+async function checkPaymentStatus(paymentId) {
+  try {
+    // Verificar se o paymentId existe
+    if (!paymentId) {
+      throw new Error('Payment ID is required');
+    }
+    
+    // Obter a URL base do servidor
+    const baseUrl = getServerBaseUrl();
+
+    // Fazer requisição para verificar o status do pagamento
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return processPaymentStatus(data);
+
   } catch (error) {
-    console.error('Erro ao verificar status do pagamento:', error);
+    // Tratar erros durante a verificação do status do pagamento
+    console.error('Error checking payment status:', error);
+  
+    // Atualizar mensagem de status se o elemento existir
+    const statusMessage = document.getElementById('payment-status-message');
+    if (statusMessage) {
+      statusMessage.textContent = 'Erro ao verificar status do pagamento. Tentando novamente...';
+    }
+    
     return false; // Continuar verificando
   }
+}
+
+// Function to manually check payment status
+function manualCheckStatus(paymentId) {
+  checkPaymentStatus(paymentId);
 }
 // Function to check payment status periodically
 function startPaymentStatusCheck(paymentId) {
@@ -1066,7 +1135,8 @@ function startPaymentStatusCheck(paymentId) {
   
   // Função para executar a verificação periodicamente
   async function runPeriodicCheck() {
-    const shouldStop = await checkPaymentStatus();
+    const shouldStop = await checkPaymentStatus(paymentId);
+    attempts++;
     
     if (!shouldStop && attempts < maxAttempts) {
       // Agendar próxima verificação
