@@ -1056,6 +1056,7 @@ async function checkPaymentStatus(paymentId) {
     }
 
     const data = await response.json();
+    return data; // Return the data from the function
   
   } catch (error) {
     // Tratar erros durante a verificação do status do pagamento
@@ -1070,7 +1071,7 @@ async function checkPaymentStatus(paymentId) {
     return false; // Continuar verificando
   }
 }
-// Remove extra closing brace that was causing syntax error
+// Comment explaining the fix
 
 // Function to manually check payment status
 function manualCheckStatus(paymentId) {
