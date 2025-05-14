@@ -1071,11 +1071,11 @@ async function checkPaymentStatus(paymentId) {
     return false; // Continuar verificando
   }
 }
-// Comment explaining the fix
 
 // Function to manually check payment status
 function manualCheckStatus(paymentId) {
   checkPaymentStatus(paymentId);
+  // Não use return aqui, pois não é necessário
 }
 // Function to check payment status periodically
 function startPaymentStatusCheck(paymentId) {
