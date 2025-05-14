@@ -1071,6 +1071,7 @@ async function checkPaymentStatus(paymentId) {
     return false; // Continuar verificando
   }
 }
+// Remove extra closing brace that was causing syntax error
 
 // Function to manually check payment status
 function manualCheckStatus(paymentId) {
