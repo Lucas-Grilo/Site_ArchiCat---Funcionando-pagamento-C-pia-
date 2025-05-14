@@ -1056,7 +1056,7 @@ async function checkPaymentStatus(paymentId) {
     }
 
     const data = await response.json();
-    return processPaymentStatus(data);
+  
   } catch (error) {
     // Tratar erros durante a verificação do status do pagamento
     console.error('Error checking payment status:', error);
