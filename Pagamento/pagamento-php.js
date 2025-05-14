@@ -902,19 +902,6 @@ async function checkPaymentStatus(paymentId) {
       console.log(`Verificando status do pagamento: ${paymentId}`);
       
       // Fazer requisição para o backend para verificar o status
-// Get server base URL if not already defined
-const serverBaseUrl = getServerBaseUrl();
-// Make API request to check payment status
-const statusResponse = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao verificar status: ${response.status}`);
-      }
-      
-const paymentStatusData = await response.json();
-      console.log('Status do pagamento:', statusData);
-      
-      // Fazer requisição para o backend
       const baseUrl = getServerBaseUrl();
       const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
       
@@ -1021,59 +1008,7 @@ function processPaymentStatus(statusData, statusMessageElement, paymentId) {
   // Continuar verificando
   return false;
 }
-    console.log('Status do pagamento:', statusData);
-    
-    // Atualizar a mensagem de status
-    if (statusMessageElement) {
-      statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
-    }
-    
-    // Verificar se o pagamento foi aprovado
-    if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
-      console.log('Pagamento aprovado!');
-      
-      if (statusMessageElement) {
-        statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
-        statusMessageElement.style.color = '#008800';
-      }
-      
-      // Redirecionar para a página de sucesso após 3 segundos
-      setTimeout(() => {
-        const baseUrl = window.location.origin;
-        window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
-      }, 3000);
-      
-      return true; // Interromper a verificação
-    }
-    
-    // Verificar se o pagamento foi rejeitado ou cancelado
-    if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
-        statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
-      console.log('Pagamento rejeitado ou cancelado');
-      
-      if (statusMessageElement) {
-        statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
-        statusMessageElement.style.color = '#cc0000';
-      }
-      
-      // Reativar o botão PIX
-      const pixButton = document.getElementById('pix-button');
-      if (pixButton) {
-        pixButton.textContent = 'Tentar novamente';
-        pixButton.disabled = false;
-        pixButton.style.display = 'block';
-      }
-      
-      return true; // Interromper a verificação
-    }
-    
-    return false; // Continuar verificando
-try {
-  // Add payment status checking logic here
-} catch (error) {
-    console.error('Error checking payment status:', error);
-    return false; // Continue checking
-  }
+
 // Function to process payment status
 function processPaymentStatus(statusData) {
   // Get status message element
