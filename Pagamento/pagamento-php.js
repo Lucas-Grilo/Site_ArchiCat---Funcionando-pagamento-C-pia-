@@ -681,29 +681,50 @@ async function processPixPayment() {
 function startPaymentStatusCheck(paymentId) {
   console.log('Iniciando verificação periódica do status do pagamento:', paymentId);
   
-  // Configurações para a verificação periódica
-  const checkInterval = 5000; // 5 segundos entre cada verificação
-  const maxAttempts = 60; // Verificar por até 5 minutos (60 * 5s = 300s = 5min)
-  let attempts = 0;
+  if (!paymentId) {
+    console.error('ID do pagamento não fornecido para verificação de status');
+    return;
+  }
   
-  // Função para verificar o status do pagamento
-  async function checkPaymentStatus() {
-    try {
-      attempts++;
-      console.log(`Verificando status do pagamento (tentativa ${attempts}/${maxAttempts})`);
+  // Salvar o ID do pagamento no sessionStorage para recuperação posterior
+  sessionStorage.setItem('pixPaymentId', paymentId);
+  
+  // Iniciar a verificação periódica
+  runPeriodicCheck(paymentId);
+}
+
+// Função para verificar o status do pagamento
+async function checkPaymentStatus(paymentId) {
+  try {
+    // Verificar se o paymentId foi fornecido como parâmetro
+    if (!paymentId) {
+      // Tentar obter do sessionStorage como fallback
+      paymentId = sessionStorage.getItem('pixPaymentId');
+      if (!paymentId) {
+        console.error('ID do pagamento não encontrado');
+        return true; // Interromper a verificação
+      }
+    }
+    
+    console.log(`Verificando status do pagamento: ${paymentId}`);
+    
+    // Elemento para exibir mensagens de status
+    const statusMessageElement = document.getElementById('payment-status-message');
+    
+    // Fazer requisição para o backend para verificar o status
+    const baseUrl = getServerBaseUrl();
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${paymentId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Erro ao verificar status: ${response.status}`);
+    }
+    
+    const statusData = await response.json();
+    console.log('Status do pagamento:', statusData);
       
-      // Fazer requisição para o backend para verificar o status
-      const baseUrl = getServerBaseUrl();
-      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Status do pagamento:', data);
-        
-        // Atualizar a mensagem de status
-        const statusMessage = document.getElementById('payment-status-message');
-        if (statusMessage) {
-          statusMessage.textContent = `Status atual: ${data.status || 'Verificando...'}`;
+    // Atualizar a mensagem de status
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
         }
         
         // Se o pagamento foi aprovado, redirecionar para a página de sucesso
@@ -756,7 +777,13 @@ async function runPeriodicCheck(paymentId) {
   
   if (!paymentId) {
     console.error('ID do pagamento não fornecido para verificação periódica');
-    return;
+    // Tentar obter do sessionStorage como fallback
+    paymentId = sessionStorage.getItem('pixPaymentId');
+    if (!paymentId) {
+      console.error('ID do pagamento não encontrado no sessionStorage');
+      return;
+    }
+    console.log('ID do pagamento recuperado do sessionStorage:', paymentId);
   }
   
   // Verificar o status do pagamento
@@ -801,7 +828,9 @@ async function checkPaymentStatus(paymentId) {
     
     // Fazer requisição para o backend para verificar o status
     const baseUrl = getServerBaseUrl();
-    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
+    const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${paymentId}`);
+    
+    console.log(`Verificando status em: ${baseUrl}/Pagamento/payment-status.php?action=payment-status&id=${paymentId}`);
     
     if (!response.ok) {
       throw new Error(`Erro ao verificar status: ${response.status}`);
