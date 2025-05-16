@@ -752,7 +752,18 @@ async function checkPaymentStatus(paymentId) {
         setTimeout(() => checkPaymentStatus(paymentId), checkInterval);
       }
     }
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return false;
   }
+    console.error('Error checking payment status:', error);
+    return false;
+  }
+try {
+  // Add try block here
+} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
 }
 
 // Função para iniciar a verificação periódica do status do pagamento
