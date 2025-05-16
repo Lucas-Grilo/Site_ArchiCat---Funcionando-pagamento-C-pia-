@@ -878,35 +878,45 @@ function formatarCEP(cep) {
   return cep;
 }
 
+// Função para configurar o botão de buscar CEP
+function setupCepButton() {
+  const cepInput = document.getElementById('cep');
+  const buscarCepButton = document.getElementById('buscar-cep');
+  
+  if (!cepInput || !buscarCepButton) {
+    console.warn('Elementos de CEP não encontrados no DOM');
+    return;
+  }
+  
+  // Adicionar evento de clique ao botão de buscar CEP
+  buscarCepButton.addEventListener('click', function() {
+    const cep = cepInput.value;
+    buscarEnderecoPorCEP(cep);
+  });
+  
+  // Adicionar evento de formatação ao campo de CEP
+  cepInput.addEventListener('input', function() {
+    this.value = formatarCEP(this.value);
+  });
+  
+  // Adicionar evento de tecla Enter para buscar o CEP
+  cepInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Previne o envio do formulário
+      buscarEnderecoPorCEP(this.value);
+    }
+  });
+  
+  console.log('Botão de CEP configurado com sucesso');
+}
+
 // Atualiza os campos ao carregar a página
 window.addEventListener("load", function() {
   updatePaymentFields();
   loadTotalFromSession();
   
-  // Adiciona evento de clique ao botão de buscar CEP
-  const buscarCepButton = document.getElementById('buscar-cep');
-  if (buscarCepButton) {
-    buscarCepButton.addEventListener('click', function() {
-      const cep = document.getElementById('cep').value;
-      buscarEnderecoPorCEP(cep);
-    });
-  }
-  
-  // Adiciona evento de formatação ao campo de CEP
-  const cepInput = document.getElementById('cep');
-  if (cepInput) {
-    cepInput.addEventListener('input', function() {
-      this.value = formatarCEP(this.value);
-    });
-    
-    // Adiciona evento de tecla Enter para buscar o CEP
-    cepInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault(); // Previne o envio do formulário
-        buscarEnderecoPorCEP(this.value);
-      }
-    });
-  }
+  // Configurar o botão de buscar CEP
+  setupCepButton();
 });
 
 // Escuta mudanças no método de pagamento selecionado

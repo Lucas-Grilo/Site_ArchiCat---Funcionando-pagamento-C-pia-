@@ -754,6 +754,11 @@ function startPaymentStatusCheck(paymentId) {
 async function runPeriodicCheck(paymentId) {
   console.log('Executando verificação periódica para o pagamento:', paymentId);
   
+  if (!paymentId) {
+    console.error('ID do pagamento não fornecido para verificação periódica');
+    return;
+  }
+  
   // Verificar o status do pagamento
   const shouldStop = await checkPaymentStatus(paymentId);
   
@@ -789,7 +794,7 @@ async function checkPaymentStatus(paymentId) {
       }
     }
     
-    console.log(`Verificando status do pagamento (tentativa ${attempts}/${maxAttempts})`);
+    console.log(`Verificando status do pagamento (tentativa ${checkPaymentStatus.attempts}/${maxAttempts})`);
     
     // Elemento para exibir mensagens de status
     const statusMessageElement = document.getElementById('payment-status-message');
@@ -852,7 +857,7 @@ async function checkPaymentStatus(paymentId) {
     }
     
     // Se atingiu o número máximo de tentativas
-    if (attempts >= maxAttempts) {
+    if (checkPaymentStatus.attempts >= maxAttempts) {
       console.log('Número máximo de tentativas atingido');
       
       if (statusMessageElement) {
@@ -867,12 +872,13 @@ async function checkPaymentStatus(paymentId) {
   } catch (error) {
     console.error('Erro ao verificar status do pagamento:', error);
     
+    const statusMessageElement = document.getElementById('payment-status-message');
     if (statusMessageElement) {
       statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
     }
     
     // Se atingiu o número máximo de tentativas
-    if (attempts >= maxAttempts) {
+    if (checkPaymentStatus.attempts >= maxAttempts) {
       if (statusMessageElement) {
         statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
       }
@@ -882,162 +888,8 @@ async function checkPaymentStatus(paymentId) {
     return false;
   }
 }
-  
-  // Função para verificar o status do pagamento
-  async function checkPaymentStatus(paymentId) {
-    try {
-      // Verificar se o paymentId foi fornecido como parâmetro
-      if (!paymentId) {
-        // Tentar obter do sessionStorage como fallback
-        paymentId = sessionStorage.getItem('pixPaymentId');
-        if (!paymentId) {
-          console.error('ID do pagamento não encontrado');
-          return true; // Interromper a verificação
-        }
-      }
-      
-      // Elemento para exibir mensagens de status
-      const statusMessageElement = document.getElementById('payment-status-message');
-      
-      console.log(`Verificando status do pagamento: ${paymentId}`);
-      
-      // Fazer requisição para o backend para verificar o status
-      const baseUrl = getServerBaseUrl();
-      const response = await fetch(`${baseUrl}/Pagamento/payment-status.php?payment_id=${paymentId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao verificar status: ${response.status}`);
-      }
-      
-      const statusData = await response.json();
-      
-      // Processar o status do pagamento
-      return processPaymentStatus(statusData, statusMessageElement, paymentId);
-    } catch (error) {
-      console.error('Erro ao verificar status do pagamento:', error);
-      return false; // Continuar verificando
-    }
-  }
-  
-  // Definir o intervalo de verificação
-  const checkInterval = 5000; // 5 segundos
-  
-  // Função para executar a verificação periodicamente
-  async function runPeriodicCheck() {
-    const shouldStop = await checkPaymentStatus(paymentId);
-    
-    if (!shouldStop) {
-      // Agendar próxima verificação
-      setTimeout(runPeriodicCheck, checkInterval);
-    }
-  }
-  
-  // Iniciar a verificação periódica após definir todas as funções necessárias
-  setTimeout(runPeriodicCheck, 1000);
-// Removed extra closing brace that was causing syntax error
 
-// Função para processar o status do pagamento
-function processPaymentStatus(statusData, statusMessageElement, paymentId) {
-  console.log('Status do pagamento:', statusData);
-  
-  // Contador de tentativas
-  let attempts = window.paymentCheckAttempts || 0;
-  window.paymentCheckAttempts = attempts + 1;
-  
-  // Número máximo de tentativas (5 minutos com intervalo de 5 segundos = 60 tentativas)
-  const maxAttempts = 60;
-  const checkInterval = 5000; // 5 segundos
-  
-  // Atualizar a mensagem de status
-  if (statusMessageElement) {
-    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status || 'Desconhecido'}<br><strong>Última verificação:</strong> ${new Date().toLocaleTimeString()}`;
-  }
-  
-  // Verificar se o pagamento foi aprovado
-  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
-    console.log('Pagamento aprovado!');
-    
-    if (statusMessageElement) {
-      statusMessageElement.innerHTML = `<strong>Pagamento aprovado!</strong> Redirecionando para a página de sucesso...`;
-      statusMessageElement.style.color = '#008800';
-    }
-    
-    // Redirecionar para a página de sucesso após um breve delay
-    setTimeout(() => {
-      const baseUrl = window.location.origin;
-      window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
-    }, 3000);
-    
-    // Interromper a verificação periódica
-    return true;
-  }
-  
-  // Verificar se o pagamento foi rejeitado ou cancelado
-  if (statusData.status === 'rejected' || statusData.status === 'cancelled' || 
-      statusData.status === 'Rejeitado' || statusData.status === 'Cancelado') {
-    console.log('Pagamento rejeitado ou cancelado');
-    
-    if (statusMessageElement) {
-      statusMessageElement.innerHTML = `<strong>Pagamento ${statusData.status}.</strong> Por favor, tente novamente.`;
-      statusMessageElement.style.color = '#cc0000';
-    }
-    
-    // Reativar o botão PIX
-    const pixButton = document.getElementById('pix-button');
-    if (pixButton) {
-      pixButton.textContent = 'Tentar novamente';
-      pixButton.disabled = false;
-      pixButton.style.display = 'block';
-    }
-    
-    // Interromper a verificação periódica
-    return true;
-  }
-  
-  // Se atingiu o número máximo de tentativas
-  if (attempts >= maxAttempts) {
-    console.log('Número máximo de tentativas atingido');
-    
-    if (statusMessageElement) {
-      statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-    }
-    
-    return true;
-  }
-  
-  // Continuar verificando
-  return false;
-}
-
-// Function to process payment status
-function processPaymentStatus(statusData) {
-  // Get status message element
-  const statusMessageElement = document.getElementById('payment-status-message');
-  
-  // Log payment status
-  console.log('Payment status:', statusData);
-  
-  // Update status message if element exists
-  if (statusMessageElement) {
-    statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status || 'Unknown'}`;
-  }
-  
-  // Check if payment is approved
-  if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
-    handleApprovedPayment(statusData.payment_id);
-    return true;
-  }
-  
-  // Check if payment is rejected/cancelled  
-  if (isPaymentRejected(statusData.status)) {
-    handleRejectedPayment();
-    return true;
-  }
-  
-  return false; // Continue checking
-}
-
-// Função principal para verificar o status do pagamento
+// Função para verificar o status do pagamento
 async function checkPaymentStatus(paymentId) {
   try {
     // Verificar se o paymentId existe
