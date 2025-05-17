@@ -247,6 +247,34 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// Função para configurar o botão de buscar CEP
+function setupCepButton() {
+  console.log('Configurando botão de buscar CEP...');
+  const buscarCepButton = document.getElementById('buscar-cep');
+  const cepInput = document.getElementById('cep');
+  
+  if (buscarCepButton && cepInput) {
+    console.log('Botão de buscar CEP e input de CEP encontrados no DOM');
+    
+    buscarCepButton.addEventListener('click', function() {
+      console.log('Botão de buscar CEP clicado!');
+      buscarCep(cepInput.value);
+    });
+    
+    // Adicionar evento para buscar CEP ao pressionar Enter no campo de CEP
+    cepInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        buscarCep(cepInput.value);
+      }
+    });
+    
+    console.log('Eventos adicionados ao botão de buscar CEP com sucesso');
+  } else {
+    console.log('Botão de buscar CEP ou input de CEP não encontrados no DOM');
+  }
+}
+
 // Função para obter a chave pública do Mercado Pago do backend
 async function initMercadoPago() {
   try {
@@ -734,31 +762,103 @@ async function checkPaymentStatus(paymentId) {
           return; // Interromper as verificações
         }
       }
-      
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
+}
+  // Add error handling for payment status check
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
+}
+  // Add error handling for payment status check
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
+}
+  // Add error handling for payment status check
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
+}
+  // Add error handling for payment status check} catch (error) {
+  console.error('Error checking payment status:', error);
+  return false;
+
+      console.error('Error checking payment status:', error);
+      return false;
+    
       // Continue checking if max attempts not reached
-      if (attempts < maxAttempts) {
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+}
+  if (attempts < maxAttempts) {
+    setTimeout(checkPaymentStatus, checkInterval);
+  }
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking payment status:', error);
+}
+  if (attempts < maxAttempts) {
+    setTimeout(checkPaymentStatus, checkInterval);
+  }
+try {
+  // Add error handling logic here
+} catch (error) {
+  console.error('Error checking payment status:', error);
+} 
+try {
+  // Add error handling logic here
+} catch (error) {
+  console.error('Error checking payment status:', error);
+}
+  if (attempts < maxAttempts) {
+try {
+  // Add error handling for payment status check
+} catch (error) {
+  console.error('Error checking attempts:', error);
+}
         setTimeout(checkPaymentStatus, checkInterval);
-      } else {
+try {
+  // Add error handling logic here
+} catch (error) {
         console.log('Número máximo de tentativas atingido. Parando verificação automática.');
         const statusMessage = document.getElementById('payment-status-message');
         if (statusMessage) {
           statusMessage.innerHTML = 'Verificação automática encerrada. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Verificar manualmente</a>';
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar status do pagamento:', error);
       // Continuar verificando mesmo com erro
       if (attempts < maxAttempts) {
         setTimeout(() => checkPaymentStatus(paymentId), checkInterval);
       }
     }
-  } catch (error) {
+  }
+try {
+  // Add try block here
+} catch (error) {
     console.error('Error checking payment status:', error);
     return false;
   }
     console.error('Error checking payment status:', error);
     return false;
+try {
+  // Add payment status check logic here
+} catch (error) {
+    console.error('Error checking payment status:', error);
+    return false;
   }
+
+  
 try {
   // Add try block here
 } catch (error) {
@@ -993,5 +1093,30 @@ function startPaymentStatusCheck(paymentId) {
   }
   
   // Iniciar a verificação periódica
+  runPeriodicCheck();
+// Function to check payment status periodically
+function startPaymentStatusCheck(paymentId) {
+  console.log('Starting periodic payment status check:', paymentId);
+  
+  // Settings for periodic check
+  const checkInterval = 5000; // 5 seconds between checks
+  const maxAttempts = 60; // Check for up to 5 minutes (60 * 5s = 300s = 5min)
+  let attempts = 0;
+  
+  // Save payment ID in sessionStorage for later use
+  sessionStorage.setItem('pixPaymentId', paymentId);
+  
+  // Function to run periodic check
+  async function runPeriodicCheck() {
+    const shouldStop = await checkPaymentStatus(paymentId);
+    attempts++;
+    
+    if (!shouldStop && attempts < maxAttempts) {
+      // Schedule next check
+      setTimeout(runPeriodicCheck, checkInterval);
+    }
+  }
+  
+  // Start periodic check
   runPeriodicCheck();
 }
