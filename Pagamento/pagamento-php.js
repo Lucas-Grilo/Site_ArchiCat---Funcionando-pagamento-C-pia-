@@ -762,6 +762,15 @@ async function checkPaymentStatus(paymentId) {
           return; // Interromper as verificações
         }
       }
+      catch (error) {
+        console.error('Erro ao verificar status do pagamento:', error);
+
+        // Exibir mensagem de erro
+        if (statusMessageElement) {
+          statusMessageElement.innerHTML = `<strong>Erro:</strong> ${error.message || 'Tente novamente'}`;
+        }
+   }
+}
 try {
   // Add error handling for payment status check
 } catch (error) {
@@ -1094,6 +1103,7 @@ function startPaymentStatusCheck(paymentId) {
   
   // Iniciar a verificação periódica
   runPeriodicCheck();
+}
 // Function to check payment status periodically
 function startPaymentStatusCheck(paymentId) {
   console.log('Starting periodic payment status check:', paymentId);
@@ -1116,7 +1126,6 @@ function startPaymentStatusCheck(paymentId) {
       setTimeout(runPeriodicCheck, checkInterval);
     }
   }
-  
   // Start periodic check
   runPeriodicCheck();
 }
