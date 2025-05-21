@@ -296,7 +296,8 @@ async function initMercadoPago() {
 // Função para determinar a URL base do servidor
 function getServerBaseUrl() {
   // Em produção, o servidor estará no mesmo domínio que o frontend
-  return window.location.origin;
+  // Adicionar o caminho para o diretório Pagamento para garantir que as requisições cheguem ao destino correto
+  return window.location.origin + '/Pagamento';
 }
 
 // Função para buscar CEP via API ViaCEP
