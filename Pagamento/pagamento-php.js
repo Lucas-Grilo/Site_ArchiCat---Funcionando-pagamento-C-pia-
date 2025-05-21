@@ -775,57 +775,35 @@ async function checkPaymentStatus(paymentId) {
     return false; // Continuar verificando
   }
 }
-try {
-  // Add error handling logic here
-} catch (error) {
-  console.error('Error checking payment status:', error);
-} 
-try {
-  // Add error handling logic here
-} catch (error) {
-  console.error('Error checking payment status:', error);
-}
-  if (attempts < maxAttempts) {
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking attempts:', error);
-}
-        setTimeout(checkPaymentStatus, checkInterval);
-try {
-  // Add error handling logic here
-} catch (error) {
-        console.log('Número máximo de tentativas atingido. Parando verificação automática.');
-        const statusMessage = document.getElementById('payment-status-message');
-        if (statusMessage) {
-          statusMessage.innerHTML = 'Verificação automática encerrada. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Verificar manualmente</a>';
-      // Continuar verificando mesmo com erro
-      if (attempts < maxAttempts) {
-        setTimeout(() => checkPaymentStatus(paymentId), checkInterval);
-      }
-    }
-  }
-try {
-  // Add try block here
-} catch (error) {
-    console.error('Error checking payment status:', error);
-    return false;
-  }
-    console.error('Error checking payment status:', error);
-    return false;
-try {
-  // Add payment status check logic here
-} catch (error) {
-    console.error('Error checking payment status:', error);
-    return false;
-  }
-
-  
-try {
-  // Add try block here
-} catch (error) {
+// Function to handle payment status check errors
+function handlePaymentStatusError(error) {
   console.error('Error checking payment status:', error);
   return false;
+}
+
+// Function to check if we should continue checking
+function shouldContinueChecking(attempts, maxAttempts, paymentId) {
+  if (attempts < maxAttempts) {
+    try {
+      // Schedule next check
+      return true;
+    } catch (error) {
+      console.error('Error scheduling next check:', error);
+      return false;
+    }
+  } else {
+    try {
+      console.log('Número máximo de tentativas atingido. Parando verificação automática.');
+      const statusMessage = document.getElementById('payment-status-message');
+      if (statusMessage) {
+        statusMessage.innerHTML = 'Verificação automática encerrada. <a href="javascript:void(0)" onclick="manualCheckStatus(\'' + paymentId + '\');">Verificar manualmente</a>';
+      }
+      return false;
+    } catch (error) {
+      console.error('Error handling maximum attempts:', error);
+      return false;
+    }
+  }
 }
 
 // Função para iniciar a verificação periódica do status do pagamento
