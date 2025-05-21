@@ -753,75 +753,28 @@ async function checkPaymentStatus(paymentId) {
     // Atualizar a mensagem de status
     if (statusMessageElement) {
       statusMessageElement.innerHTML = `<strong>Status:</strong> ${statusData.status_text || statusData.status}`;
-        }
-        
-        // Se o pagamento foi aprovado, redirecionar para a página de sucesso
-        if (data.status === 'approved' || data.status === 'Aprovado') {
-          console.log('Pagamento aprovado! Redirecionando para página de sucesso...');
-          window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
-          return; // Interromper as verificações
-        }
-      }
-      catch (error) {
-        console.error('Erro ao verificar status do pagamento:', error);
-
-        // Exibir mensagem de erro
-        if (statusMessageElement) {
-          statusMessageElement.innerHTML = `<strong>Erro:</strong> ${error.message || 'Tente novamente'}`;
-        }
-   }
-}
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
-  return false;
-}
-  // Add error handling for payment status check
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
-  return false;
-}
-  // Add error handling for payment status check
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
-  return false;
-}
-  // Add error handling for payment status check
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
-  return false;
-}
-  // Add error handling for payment status check} catch (error) {
-  console.error('Error checking payment status:', error);
-  return false;
-
-      console.error('Error checking payment status:', error);
-      return false;
+    }
     
-      // Continue checking if max attempts not reached
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
-}
-  if (attempts < maxAttempts) {
-    setTimeout(checkPaymentStatus, checkInterval);
+    // Se o pagamento foi aprovado, redirecionar para a página de sucesso
+    if (statusData.status === 'approved' || statusData.status === 'Aprovado') {
+      console.log('Pagamento aprovado! Redirecionando para página de sucesso...');
+      window.location.href = `${baseUrl}/Pagamento/success.php?payment_id=${paymentId}`;
+      return true; // Interromper as verificações
+    }
+    
+    return false; // Continuar verificando
+  } catch (error) {
+    console.error('Erro ao verificar status do pagamento:', error);
+
+    // Exibir mensagem de erro
+    const statusMessageElement = document.getElementById('payment-status-message');
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Erro:</strong> ${error.message || 'Tente novamente'}`;
+    }
+    
+    return false; // Continuar verificando
   }
-try {
-  // Add error handling for payment status check
-} catch (error) {
-  console.error('Error checking payment status:', error);
 }
-  if (attempts < maxAttempts) {
-    setTimeout(checkPaymentStatus, checkInterval);
-  }
 try {
   // Add error handling logic here
 } catch (error) {
