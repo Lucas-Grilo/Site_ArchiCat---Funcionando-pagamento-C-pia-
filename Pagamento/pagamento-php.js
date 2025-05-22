@@ -955,7 +955,7 @@ async function checkPaymentStatus(paymentId) {
     
     const statusMessageElement = document.getElementById('payment-status-message');
     if (statusMessageElement) {
-      statusMessageElement.textContent = `Erro ao verificar status. Tentando novamente...`;
+      statusMessageElement.textContent = ``;
     }
     
     // Se atingiu o número máximo de tentativas
