@@ -995,11 +995,11 @@ async function checkPaymentStatus(paymentId) {
     // Tratar erros durante a verificação do status do pagamento
     console.error('Error checking payment status:', error);
   
-    // Atualizar mensagem de status se o elemento existir
-    const statusMessage = document.getElementById('payment-status-message');
-    if (statusMessage) {
-      statusMessage.textContent = 'Erro ao verificar status do pagamento. Tentando novamente...';
-    }
+    // // Atualizar mensagem de status se o elemento existir
+    // const statusMessage = document.getElementById('payment-status-message');
+    // if (statusMessage) {
+    //   statusMessage.textContent = 'Erro ao verificar status do pagamento. Tentando novamente...';
+    // }
     
     return false; // Continuar verificando
   }
