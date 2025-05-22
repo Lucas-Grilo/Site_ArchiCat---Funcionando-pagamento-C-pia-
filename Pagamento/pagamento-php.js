@@ -766,11 +766,10 @@ async function checkPaymentStatus(paymentId) {
     return false; // Continuar verificando
   } catch (error) {
     console.error('Erro ao verificar status do pagamento:', error);
-
-    // Exibir mensagem de erro
+    
     const statusMessageElement = document.getElementById('payment-status-message');
     if (statusMessageElement) {
-      statusMessageElement.innerHTML = `<strong>Erro:</strong> ${error.message || 'Tente novamente'}`;
+      statusMessageElement.textContent = `Erro ao verificar status do pagamento. Tentando novamente...`;
     }
     
     return false; // Continuar verificando
@@ -953,20 +952,6 @@ async function checkPaymentStatus(paymentId) {
   } catch (error) {
     console.error('Erro ao verificar status do pagamento:', error);
     
-    c nstsstgtuEMn s= dEleoentc= uocummnt.gntElementById('tEyment-stettB-message');paymenifs(ststu-MsssaseElement) {
-      gtaeusMess)geEle;e t.textCf tant = ``;
-  ts}nt) {
-      statusMessageElement.textContent = ``;
-    }
-    
-    // Se atingiu o número máximo de tentativas
-    if (checkPaymentStatus.attempts >= maxAttempts) {
-      if (statusMessageElement) {
-        statusMessageElement.innerHTML = `Tempo limite excedido. O pagamento ainda pode ser processado, mas a verificação automática foi interrompida.`;
-      }
-      return true;
-    }
-    
     return false;
   }
 }
@@ -1020,10 +1005,10 @@ function startPaymentStatusCheck(paymentId) {
   const maxAttempts = 60; // Check for up to 5 minutes (60 * 5s = 300s = 5min)
   let attempts = 0;
   
-  // Salvar o ID do pagamento no sessionStorage para uso posterior
+  // Save payment ID in sessionStorage for later use
   sessionStorage.setItem('pixPaymentId', paymentId);
   
-  // Função para executar a verificação periodicamente
+  // Function to run periodic check
   async function runPeriodicCheck() {
     const shouldStop = await checkPaymentStatus(paymentId);
     attempts++;
