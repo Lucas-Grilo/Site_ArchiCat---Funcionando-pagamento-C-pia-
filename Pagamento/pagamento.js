@@ -778,7 +778,7 @@ function startPaymentStatusCheck(paymentId) {
       console.error('Erro ao verificar status do pagamento:', error);
       
       if (statusMessage) {
-        statusMessage.innerHTML = `<p style="color: #856404; background-color: #fff3cd; padding: 10px; border-radius: 5px;">Erro ao verificar status do pagamento. Tentando novamente...</p>`;
+        statusMessage.innerHTML = `<p style="color: #856404; background-color: #fff3cd; padding: 10px; border-radius: 5px;"></p>`;
       }
     }
   }, 5000); // Verificar a cada 5 segundos
