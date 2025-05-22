@@ -767,8 +767,11 @@ async function checkPaymentStatus(paymentId) {
   } catch (error) {
     console.error('Erro ao verificar status do pagamento:', error);
 
-    // Não exibimos mais a mensagem de erro para o usuário
-    // Apenas registramos no console para depuração
+    // Exibir mensagem de erro
+    const statusMessageElement = document.getElementById('payment-status-message');
+    if (statusMessageElement) {
+      statusMessageElement.innerHTML = `<strong>Erro:</strong> ${error.message || 'Tente novamente'}`;
+    }
     
     return false; // Continuar verificando
   }
@@ -950,8 +953,11 @@ async function checkPaymentStatus(paymentId) {
   } catch (error) {
     console.error('Erro ao verificar status do pagamento:', error);
     
-    // Não exibimos mais a mensagem de erro para o usuário
-    // Apenas registramos no console para depuração
+    c nstsstgtuEMn s= dEleoentc= uocummnt.gntElementById('tEyment-stettB-message');paymenifs(ststu-MsssaseElement) {
+      gtaeusMess)geEle;e t.textCf tant = ``;
+  ts}nt) {
+      statusMessageElement.textContent = ``;
+    }
     
     // Se atingiu o número máximo de tentativas
     if (checkPaymentStatus.attempts >= maxAttempts) {
